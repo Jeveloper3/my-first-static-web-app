@@ -337,6 +337,18 @@
             border-color: var(--primary);
         }
 
+        .debug-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
         @media (max-width: 768px) {
             .main-grid {
                 grid-template-columns: 1fr;
@@ -471,6 +483,11 @@
                 <div id="response" class="output">🔄 Ready to receive commands...&#10;&#10;💡 Try some commands:&#10;• "move forward at 50% speed for 2 seconds"&#10;• "blink LED 3 times quickly"&#10;• "turn left slowly"&#10;• "send hello in morse code"</div>
             </div>
             
+            <div class="form-group">
+                <label>Debug Info (Last Request):</label>
+                <div id="debug-info" class="debug-panel">No request sent yet...</div>
+            </div>
+            
             <div id="status" class="status" style="display: none;"></div>
 
             <div style="display: flex; gap: 15px; margin-top: 15px;">
@@ -517,6 +534,12 @@
             
             responseDiv.textContent += `\n[${timestamp}] ${icon} ${message}`;
             responseDiv.scrollTop = responseDiv.scrollHeight;
+        }
+
+        // Update debug info
+        function updateDebugInfo(info) {
+            const debugDiv = document.getElementById('debug-info');
+            debugDiv.textContent = JSON.stringify(info, null, 2);
         }
 
         // Set predefined prompts
@@ -576,44 +599,117 @@
                 return;
             }
 
+            // Prepare the request payload - simplified format
+            const requestPayload = {
+                message: userPrompt
+            };
+
             addLogEntry(`Sending command: "${userPrompt}"`, 'info');
             showStatus('🔄 Sending command to rover...', 'warning');
+            
+            // Update debug info
+            updateDebugInfo({
+                url: functionUrl,
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: requestPayload
+            });
 
             try {
                 const response = await fetch(functionUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
-                    body: JSON.stringify({
-                        "user_prompt": userPrompt,
-                        "system_prompt": `Convert commands into JSON for 2WD rover control. Support individual motor control, rover movements, and LED patterns.
-
-Motor Control:
-{"command": "motor", "motor": 1or2, "direction": "forward|backward", "speed": 0-100, "duration": seconds}
-{"command": "dual_motor", "motor1": {"direction": "forward|backward", "speed": 0-100}, "motor2": {"direction": "forward|backward", "speed": 0-100}, "duration": seconds}
-{"command": "rover", "movement": "forward|backward|left|right|stop", "speed": 0-100, "duration": seconds}
-
-LED Control:
-{"command": "blink", "pattern": [{"times": number, "on_duration": seconds, "off_duration": seconds}]}
-{"command": "blink", "pattern": {"type": "morse", "message": "text", "dot_duration": 0.2}}
-
-Return ONLY valid JSON.`
-                    })
+                    body: JSON.stringify(requestPayload)
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                addLogEntry(`HTTP Status: ${response.status} ${response.statusText}`, response.ok ? 'info' : 'error');
+
+                let responseText;
+                try {
+                    responseText = await response.text();
+                    addLogEntry(`Raw Response: ${responseText}`, 'info');
+                } catch (textError) {
+                    responseText = `Error reading response: ${textError.message}`;
+                    addLogEntry(responseText, 'error');
                 }
 
-                const data = await response.text();
-                addLogEntry(`Response received: ${data}`, 'success');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}\nResponse: ${responseText}`);
+                }
+
+                // Try to parse JSON response
+                let parsedResponse;
+                try {
+                    parsedResponse = JSON.parse(responseText);
+                    addLogEntry(`Parsed Response: ${JSON.stringify(parsedResponse, null, 2)}`, 'success');
+                } catch (parseError) {
+                    addLogEntry(`Response (not JSON): ${responseText}`, 'success');
+                }
+
                 showStatus('✅ Command sent successfully!', 'success');
                 updateConnectionStatus(true);
                 
             } catch (error) {
                 addLogEntry(`Error: ${error.message}`, 'error');
                 showStatus(`❌ Failed to send command: ${error.message}`, 'error');
+                updateConnectionStatus(false);
+                
+                // Update debug info with error details
+                updateDebugInfo({
+                    error: error.message,
+                    url: functionUrl,
+                    payload: requestPayload
+                });
+            }
+        }
+
+        // Test connection with a simple request
+        async function testConnection() {
+            const functionUrl = document.getElementById('function-url').value.trim();
+            
+            if (!functionUrl) {
+                showStatus('Please enter Azure Function URL', 'error');
+                return;
+            }
+
+            addLogEntry('Testing connection to Azure Function...', 'info');
+            showStatus('🔗 Testing connection...', 'warning');
+
+            try {
+                const testPayload = { message: "test connection" };
+                
+                updateDebugInfo({
+                    test: true,
+                    url: functionUrl,
+                    payload: testPayload
+                });
+
+                const response = await fetch(functionUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(testPayload)
+                });
+
+                const responseText = await response.text();
+                
+                if (response.ok) {
+                    addLogEntry(`Connection test successful! Status: ${response.status}`, 'success');
+                    addLogEntry(`Test response: ${responseText}`, 'info');
+                    showStatus('✅ Connection test successful!', 'success');
+                    updateConnectionStatus(true);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
+                
+            } catch (error) {
+                addLogEntry(`Connection test failed: ${error.message}`, 'error');
+                showStatus(`❌ Connection test failed: ${error.message}`, 'error');
                 updateConnectionStatus(false);
             }
         }
@@ -650,12 +746,7 @@ Return ONLY valid JSON.`
         // Utility functions
         function clearLog() {
             document.getElementById('response').textContent = '📋 Log cleared...\n';
-        }
-
-        function testConnection() {
-            addLogEntry('Testing connection to Azure Function...', 'info');
-            // You could implement a ping/health check here
-            showStatus('🔗 Connection test initiated', 'warning');
+            document.getElementById('debug-info').textContent = 'Debug info cleared...';
         }
 
         function emergencyStop() {
