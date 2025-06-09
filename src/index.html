@@ -143,18 +143,12 @@
             text-decoration: none;
         }
 
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
         .btn-primary {
             background: var(--primary);
             color: white;
         }
 
-        .btn-primary:hover:not(:disabled) {
+        .btn-primary:hover {
             background: var(--primary-dark);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
@@ -165,7 +159,7 @@
             color: white;
         }
 
-        .btn-secondary:hover:not(:disabled) {
+        .btn-secondary:hover {
             background: #475569;
         }
 
@@ -174,7 +168,7 @@
             color: white;
         }
 
-        .btn-success:hover:not(:disabled) {
+        .btn-success:hover {
             background: #059669;
         }
 
@@ -208,7 +202,7 @@
             justify-content: center;
         }
 
-        .control-btn:hover:not(:disabled) {
+        .control-btn:hover {
             background: var(--primary);
             transform: scale(1.1);
         }
@@ -341,20 +335,6 @@
             background: var(--primary);
             color: white;
             border-color: var(--primary);
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
 
         @media (max-width: 768px) {
@@ -506,7 +486,6 @@
         let isConnected = false;
         let currentSpeed = 50;
         let currentDuration = 2;
-        let isProcessing = false;
 
         // Initialize UI
         document.addEventListener('DOMContentLoaded', function() {
@@ -547,8 +526,6 @@
 
         // Quick movement controls
         function quickMove(direction) {
-            if (isProcessing) return;
-            
             const commands = {
                 'forward': `move forward at ${currentSpeed}% speed for ${currentDuration} seconds`,
                 'backward': `move backward at ${currentSpeed}% speed for ${currentDuration} seconds`,
@@ -565,8 +542,6 @@
 
         // Individual motor control
         function controlIndividualMotor(motorNum, direction) {
-            if (isProcessing) return;
-            
             const prompt = `motor ${motorNum} ${direction} at ${currentSpeed}% speed for ${currentDuration} seconds`;
             document.getElementById('user-prompt').value = prompt;
             sendCommand();
@@ -574,8 +549,6 @@
 
         // Quick LED controls
         function quickLED(type) {
-            if (isProcessing) return;
-            
             const commands = {
                 'blink': 'blink LED 5 times with 0.5 second intervals',
                 'sos': 'send SOS in morse code',
@@ -588,29 +561,8 @@
             }
         }
 
-        // Toggle processing state
-        function setProcessing(processing) {
-            isProcessing = processing;
-            const sendBtn = document.getElementById('send-command');
-            const buttons = document.querySelectorAll('.btn, .control-btn, .preset-btn');
-            
-            if (processing) {
-                sendBtn.innerHTML = '<div class="loading"></div> Processing...';
-                sendBtn.disabled = true;
-                buttons.forEach(btn => {
-                    if (btn !== sendBtn) btn.disabled = true;
-                });
-            } else {
-                sendBtn.innerHTML = '🚀 Send Command to Rover';
-                sendBtn.disabled = false;
-                buttons.forEach(btn => btn.disabled = false);
-            }
-        }
-
         // Main send command function
         async function sendCommand() {
-            if (isProcessing) return;
-            
             const userPrompt = document.getElementById('user-prompt').value.trim();
             const functionUrl = document.getElementById('function-url').value.trim();
             
@@ -624,14 +576,18 @@
                 return;
             }
 
-            setProcessing(true);
             addLogEntry(`Sending command: "${userPrompt}"`, 'info');
             showStatus('🔄 Sending command to rover...', 'warning');
 
             try {
-                const requestBody = {
-                    user_prompt: userPrompt,
-                    system_prompt: `Convert commands into JSON for 2WD rover control. Support individual motor control, rover movements, and LED patterns.
+                const response = await fetch(functionUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        "user_prompt": userPrompt,
+                        "system_prompt": `Convert commands into JSON for 2WD rover control. Support individual motor control, rover movements, and LED patterns.
 
 Motor Control:
 {"command": "motor", "motor": 1or2, "direction": "forward|backward", "speed": 0-100, "duration": seconds}
