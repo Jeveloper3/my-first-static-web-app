@@ -143,12 +143,18 @@
             text-decoration: none;
         }
 
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
         .btn-primary {
             background: var(--primary);
             color: white;
         }
 
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             background: var(--primary-dark);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
@@ -159,7 +165,7 @@
             color: white;
         }
 
-        .btn-secondary:hover {
+        .btn-secondary:hover:not(:disabled) {
             background: #475569;
         }
 
@@ -168,8 +174,32 @@
             color: white;
         }
 
-        .btn-success:hover {
+        .btn-success:hover:not(:disabled) {
             background: #059669;
+        }
+
+        .btn-loading {
+            position: relative;
+            color: transparent !important;
+        }
+
+        .btn-loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -8px;
+            margin-top: -8px;
+            border: 2px solid transparent;
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 1s ease infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         .quick-controls {
@@ -202,12 +232,12 @@
             justify-content: center;
         }
 
-        .control-btn:hover {
+        .control-btn:hover:not(:disabled) {
             background: var(--primary);
             transform: scale(1.1);
         }
 
-        .control-btn:active {
+        .control-btn:active:not(:disabled) {
             transform: scale(0.95);
         }
 
@@ -238,6 +268,9 @@
             padding: 12px 16px;
             border-radius: 8px;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .status.success {
@@ -258,11 +291,21 @@
             border: 1px solid var(--warning);
         }
 
+        .status.info {
+            background: rgba(37, 99, 235, 0.2);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
         .connection-status {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 20px;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
         }
 
         .status-dot {
@@ -275,6 +318,11 @@
 
         .status-dot.connected {
             background: var(--success);
+            animation: none;
+        }
+
+        .status-dot.connecting {
+            background: var(--warning);
         }
 
         @keyframes pulse {
@@ -337,6 +385,30 @@
             border-color: var(--primary);
         }
 
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .feedback-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
         @media (max-width: 768px) {
             .main-grid {
                 grid-template-columns: 1fr;
@@ -356,7 +428,7 @@
     <div class="container">
         <div class="header">
             <h1>🤖 LLM Rover Control Center</h1>
-            <p>AI-Powered 2WD Rover with LED Control via Azure IoT</p>
+            <p>AI-Powered 2WD Rover Control via Azure IoT</p>
         </div>
 
         <div class="main-grid">
@@ -366,23 +438,27 @@
                 
                 <div class="form-group">
                     <label for="user-prompt">Tell your rover what to do:</label>
-                    <textarea id="user-prompt" placeholder="Examples:&#10;• Move forward at 75% speed for 3 seconds&#10;• Turn left slowly for 2 seconds&#10;• Blink LED 5 times quickly&#10;• Send SOS in morse code&#10;• Motor 1 forward 50%, motor 2 backward 100%">move forward at 75% speed for 3 seconds</textarea>
+                    <textarea id="user-prompt" placeholder="Examples:&#10;• Move forward at 75% speed for 3 seconds&#10;• Turn left slowly for 2 seconds&#10;• Motor 1 forward 50%, motor 2 backward 100%&#10;• Stop all motors immediately">move forward at 75% speed for 3 seconds</textarea>
                 </div>
 
                 <div class="preset-commands">
-                    <div class="preset-btn" onclick="setPrompt('move forward at 75% speed for 3 seconds')">Forward</div>
+                    <div class="preset-btn" onclick="setPrompt('move forward at 75% speed for 3 seconds')">Forward Fast</div>
                     <div class="preset-btn" onclick="setPrompt('move backward at 50% speed for 2 seconds')">Backward</div>
                     <div class="preset-btn" onclick="setPrompt('turn left at 60% speed for 1.5 seconds')">Turn Left</div>
                     <div class="preset-btn" onclick="setPrompt('turn right at 60% speed for 1.5 seconds')">Turn Right</div>
-                    <div class="preset-btn" onclick="setPrompt('stop all motors')">Stop</div>
-                    <div class="preset-btn" onclick="setPrompt('blink LED 5 times with 0.5 second intervals')">Quick Blink</div>
-                    <div class="preset-btn" onclick="setPrompt('send SOS in morse code')">SOS Morse</div>
+                    <div class="preset-btn" onclick="setPrompt('stop all motors')">Full Stop</div>
                     <div class="preset-btn" onclick="setPrompt('motor 1 forward 70%, motor 2 backward 70% for 2 seconds')">Spin Turn</div>
+                    <div class="preset-btn" onclick="setPrompt('move forward slowly at 30% speed for 5 seconds')">Slow Forward</div>
+                    <div class="preset-btn" onclick="setPrompt('reverse at maximum speed for 1 second')">Quick Reverse</div>
                 </div>
 
                 <button class="btn btn-success" id="send-command" style="width: 100%; margin-top: 20px;">
                     🚀 Send Command to Rover
                 </button>
+                
+                <div class="progress-bar" id="command-progress" style="display: none;">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
             </div>
 
             <!-- Manual Control Panel -->
@@ -391,7 +467,8 @@
                 
                 <div class="connection-status">
                     <div class="status-dot" id="connection-dot"></div>
-                    <span id="connection-text">Disconnected</span>
+                    <span id="connection-text">Ready to Connect</span>
+                    <span id="last-response-time" style="margin-left: auto; font-size: 12px; color: var(--text-secondary);"></span>
                 </div>
 
                 <!-- Directional Control Pad -->
@@ -424,8 +501,8 @@
                 <div class="form-group">
                     <label for="duration-slider">Duration:</label>
                     <div class="slider-container">
-                        <span>1s</span>
-                        <input type="range" id="duration-slider" class="slider" min="1" max="10" value="2" step="0.5">
+                        <span>0.5s</span>
+                        <input type="range" id="duration-slider" class="slider" min="0.5" max="10" value="2" step="0.5">
                         <span id="duration-value">2s</span>
                     </div>
                 </div>
@@ -447,13 +524,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- LED Quick Controls -->
-                <div class="quick-controls">
-                    <button class="btn btn-primary" onclick="quickLED('blink')">💡 Blink</button>
-                    <button class="btn btn-primary" onclick="quickLED('sos')">🆘 SOS</button>
-                    <button class="btn btn-primary" onclick="quickLED('party')">🎉 Party</button>
-                </div>
             </div>
         </div>
 
@@ -468,15 +538,38 @@
 
             <div class="form-group">
                 <label>Response Log:</label>
-                <div id="response" class="output">🔄 Ready to receive commands...&#10;&#10;💡 Try some commands:&#10;• "move forward at 50% speed for 2 seconds"&#10;• "blink LED 3 times quickly"&#10;• "turn left slowly"&#10;• "send hello in morse code"</div>
+                <div id="response" class="output">🔄 Rover Control System Ready...&#10;&#10;💡 Try some commands:&#10;• "move forward at 50% speed for 2 seconds"&#10;• "turn left slowly"&#10;• "motor 1 forward 80% for 3 seconds"&#10;• "stop all motors immediately"&#10;&#10;⌨️ Keyboard shortcuts: Alt + W/A/S/D for movement, Alt + Space to stop</div>
             </div>
             
             <div id="status" class="status" style="display: none;"></div>
 
-            <div style="display: flex; gap: 15px; margin-top: 15px;">
+            <div class="feedback-section">
+                <h4 style="margin-bottom: 10px; color: var(--text-primary);">📈 System Performance</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; text-align: center;">
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--success);" id="success-count">0</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Successful Commands</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--error);" id="error-count">0</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Failed Commands</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);" id="avg-response">0ms</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Avg Response Time</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--warning);" id="uptime">0m</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Session Uptime</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 15px; flex-wrap: wrap;">
                 <button class="btn btn-secondary" onclick="clearLog()">🗑️ Clear Log</button>
                 <button class="btn btn-secondary" onclick="testConnection()">🔗 Test Connection</button>
                 <button class="btn btn-primary" onclick="emergencyStop()">🛑 Emergency Stop</button>
+                <button class="btn btn-secondary" onclick="exportLog()">📄 Export Log</button>
             </div>
         </div>
     </div>
@@ -486,12 +579,37 @@
         let isConnected = false;
         let currentSpeed = 50;
         let currentDuration = 2;
+        let commandInProgress = false;
+        let successCount = 0;
+        let errorCount = 0;
+        let responseTimes = [];
+        let sessionStartTime = Date.now();
 
         // Initialize UI
         document.addEventListener('DOMContentLoaded', function() {
             updateSliderValues();
             addLogEntry('🚀 Rover Control Interface Initialized', 'info');
+            startUptimeCounter();
         });
+
+        // Update uptime counter
+        function startUptimeCounter() {
+            setInterval(() => {
+                const uptimeMinutes = Math.floor((Date.now() - sessionStartTime) / 60000);
+                document.getElementById('uptime').textContent = uptimeMinutes + 'm';
+            }, 60000);
+        }
+
+        // Update performance metrics
+        function updateMetrics() {
+            document.getElementById('success-count').textContent = successCount;
+            document.getElementById('error-count').textContent = errorCount;
+            
+            if (responseTimes.length > 0) {
+                const avgTime = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+                document.getElementById('avg-response').textContent = Math.round(avgTime) + 'ms';
+            }
+        }
 
         // Update slider values display
         function updateSliderValues() {
@@ -509,11 +627,19 @@
             });
         }
 
-        // Add log entry with timestamp
+        // Add log entry with timestamp and better formatting
         function addLogEntry(message, type = 'info') {
             const responseDiv = document.getElementById('response');
             const timestamp = new Date().toLocaleTimeString();
-            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            const icons = {
+                'error': '❌',
+                'success': '✅',
+                'warning': '⚠️',
+                'info': 'ℹ️',
+                'command': '🎯',
+                'response': '📨'
+            };
+            const icon = icons[type] || 'ℹ️';
             
             responseDiv.textContent += `\n[${timestamp}] ${icon} ${message}`;
             responseDiv.scrollTop = responseDiv.scrollHeight;
@@ -526,6 +652,11 @@
 
         // Quick movement controls
         function quickMove(direction) {
+            if (commandInProgress) {
+                showStatus('⏳ Please wait for current command to complete', 'warning');
+                return;
+            }
+
             const commands = {
                 'forward': `move forward at ${currentSpeed}% speed for ${currentDuration} seconds`,
                 'backward': `move backward at ${currentSpeed}% speed for ${currentDuration} seconds`,
@@ -542,42 +673,64 @@
 
         // Individual motor control
         function controlIndividualMotor(motorNum, direction) {
+            if (commandInProgress) {
+                showStatus('⏳ Please wait for current command to complete', 'warning');
+                return;
+            }
+
             const prompt = `motor ${motorNum} ${direction} at ${currentSpeed}% speed for ${currentDuration} seconds`;
             document.getElementById('user-prompt').value = prompt;
             sendCommand();
         }
 
-        // Quick LED controls
-        function quickLED(type) {
-            const commands = {
-                'blink': 'blink LED 5 times with 0.5 second intervals',
-                'sos': 'send SOS in morse code',
-                'party': 'blink LED in party rhythm pattern with fast beats'
-            };
-            
-            if (commands[type]) {
-                document.getElementById('user-prompt').value = commands[type];
-                sendCommand();
-            }
-        }
-
-        // Main send command function
+        // Main send command function with improved feedback
         async function sendCommand() {
+            if (commandInProgress) {
+                showStatus('⏳ Command already in progress, please wait...', 'warning');
+                return;
+            }
+
             const userPrompt = document.getElementById('user-prompt').value.trim();
             const functionUrl = document.getElementById('function-url').value.trim();
             
             if (!userPrompt) {
-                showStatus('Please enter a command', 'error');
+                showStatus('❌ Please enter a command', 'error');
                 return;
             }
             
             if (!functionUrl) {
-                showStatus('Please enter Azure Function URL', 'error');
+                showStatus('❌ Please enter Azure Function URL', 'error');
                 return;
             }
 
-            addLogEntry(`Sending command: "${userPrompt}"`, 'info');
-            showStatus('🔄 Sending command to rover...', 'warning');
+            // Set loading state
+            commandInProgress = true;
+            const sendButton = document.getElementById('send-command');
+            const originalText = sendButton.innerHTML;
+            sendButton.innerHTML = '🔄 Sending...';
+            sendButton.classList.add('btn-loading');
+            sendButton.disabled = true;
+
+            // Disable control buttons
+            const controlButtons = document.querySelectorAll('.control-btn, .btn-secondary');
+            controlButtons.forEach(btn => btn.disabled = true);
+
+            // Show progress
+            const progressBar = document.getElementById('command-progress');
+            const progressFill = document.getElementById('progress-fill');
+            progressBar.style.display = 'block';
+            
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 10;
+                progressFill.style.width = progress + '%';
+                if (progress >= 90) clearInterval(progressInterval);
+            }, 100);
+
+            const startTime = Date.now();
+            updateConnectionStatus('connecting');
+            addLogEntry(`Sending command: "${userPrompt}"`, 'command');
+            showStatus('🔄 Transmitting command to rover...', 'info');
 
             try {
                 const response = await fetch(functionUrl, {
@@ -587,105 +740,62 @@
                     },
                     body: JSON.stringify({
                         "user_prompt": userPrompt,
-                        "system_prompt": `Convert commands into JSON for 2WD rover control. Support individual motor control, rover movements, and LED patterns.
+                        "system_prompt": `Convert commands into JSON for 2WD rover control. Support individual motor control and rover movements.
 
 Motor Control:
 {"command": "motor", "motor": 1or2, "direction": "forward|backward", "speed": 0-100, "duration": seconds}
 {"command": "dual_motor", "motor1": {"direction": "forward|backward", "speed": 0-100}, "motor2": {"direction": "forward|backward", "speed": 0-100}, "duration": seconds}
 {"command": "rover", "movement": "forward|backward|left|right|stop", "speed": 0-100, "duration": seconds}
 
-LED Control:
-{"command": "blink", "pattern": [{"times": number, "on_duration": seconds, "off_duration": seconds}]}
-{"command": "blink", "pattern": {"type": "morse", "message": "text", "dot_duration": 0.2}}
-
 Return ONLY valid JSON.`
                     })
                 });
+
+                const responseTime = Date.now() - startTime;
+                responseTimes.push(responseTime);
+
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
                 const data = await response.text();
-                addLogEntry(`Response received: ${data}`, 'success');
-                showStatus('✅ Command sent successfully!', 'success');
-                updateConnectionStatus(true);
+                successCount++;
+                updateMetrics();
+                
+                addLogEntry(`✓ Command executed successfully (${responseTime}ms)`, 'success');
+                addLogEntry(`Response: ${data}`, 'response');
+                showStatus('✅ Command executed successfully!', 'success');
+                updateConnectionStatus('connected');
+                
+                // Update last response time
+                document.getElementById('last-response-time').textContent = `Last: ${responseTime}ms`;
                 
             } catch (error) {
-                addLogEntry(`Error: ${error.message}`, 'error');
-                showStatus(`❌ Failed to send command: ${error.message}`, 'error');
-                updateConnectionStatus(false);
-            }
-        }
-
-        // Show status message
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
-            statusDiv.style.display = 'block';
-            
-            if (type === 'success') {
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
+                progressFill.style.background = 'var(--error)';
+                
+                errorCount++;
+                updateMetrics();
+                
+                const errorMsg = error.message.includes('Failed to fetch') 
+                    ? 'Network error - Check connection and URL' 
+                    : error.message;
+                
+                addLogEntry(`✗ Command failed: ${errorMsg}`, 'error');
+                showStatus(`❌ Command failed: ${errorMsg}`, 'error');
+                updateConnectionStatus('disconnected');
+            } finally {
+                // Reset UI state
                 setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                }, 3000);
-            }
-        }
-
-        // Update connection status
-        function updateConnectionStatus(connected) {
-            isConnected = connected;
-            const dot = document.getElementById('connection-dot');
-            const text = document.getElementById('connection-text');
-            
-            if (connected) {
-                dot.classList.add('connected');
-                text.textContent = 'Connected to Rover';
-            } else {
-                dot.classList.remove('connected');
-                text.textContent = 'Connection Status Unknown';
-            }
-        }
-
-        // Utility functions
-        function clearLog() {
-            document.getElementById('response').textContent = '📋 Log cleared...\n';
-        }
-
-        function testConnection() {
-            addLogEntry('Testing connection to Azure Function...', 'info');
-            // You could implement a ping/health check here
-            showStatus('🔗 Connection test initiated', 'warning');
-        }
-
-        function emergencyStop() {
-            document.getElementById('user-prompt').value = 'emergency stop all motors and turn off LED';
-            sendCommand();
-            addLogEntry('🛑 EMERGENCY STOP ACTIVATED', 'error');
-        }
-
-        // Event listeners
-        document.getElementById('send-command').addEventListener('click', sendCommand);
-        
-        // Allow Enter key to send command
-        document.getElementById('user-prompt').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && e.ctrlKey) {
-                sendCommand();
-            }
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.altKey) {
-                switch(e.key) {
-                    case 'w': quickMove('forward'); break;
-                    case 's': quickMove('backward'); break;
-                    case 'a': quickMove('left'); break;
-                    case 'd': quickMove('right'); break;
-                    case ' ': quickMove('stop'); e.preventDefault(); break;
-                }
-            }
-        });
-    </script>
-</body>
-</html>
+                    commandInProgress = false;
+                    sendButton.innerHTML = originalText;
+                    sendButton.classList.remove('btn-loading');
+                    sendButton.disabled = false;
+                    
+                    controlButtons.forEach(btn => btn.disabled = false);
+                    
+                    progressBar.style
