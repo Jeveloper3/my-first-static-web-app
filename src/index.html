@@ -202,13 +202,6 @@
             to { transform: rotate(360deg); }
         }
 
-        .quick-controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
         .control-pad {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -417,10 +410,6 @@
             .header h1 {
                 font-size: 2rem;
             }
-            
-            .quick-controls {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 </head>
@@ -538,7 +527,15 @@
 
             <div class="form-group">
                 <label>Response Log:</label>
-                <div id="response" class="output">🔄 Rover Control System Ready...&#10;&#10;💡 Try some commands:&#10;• "move forward at 50% speed for 2 seconds"&#10;• "turn left slowly"&#10;• "motor 1 forward 80% for 3 seconds"&#10;• "stop all motors immediately"&#10;&#10;⌨️ Keyboard shortcuts: Alt + W/A/S/D for movement, Alt + Space to stop</div>
+                <div id="response" class="output">🔄 Rover Control System Ready...
+
+💡 Try some commands:
+• "move forward at 50% speed for 2 seconds"
+• "turn left slowly"
+• "motor 1 forward 80% for 3 seconds"
+• "stop all motors immediately"
+
+⌨️ Interface is now functional and ready for testing!</div>
             </div>
             
             <div id="status" class="status" style="display: none;"></div>
@@ -589,7 +586,24 @@
         document.addEventListener('DOMContentLoaded', function() {
             updateSliderValues();
             addLogEntry('🚀 Rover Control Interface Initialized', 'info');
+            addLogEntry('✅ All systems ready for testing', 'success');
             startUptimeCounter();
+            
+            // Add click handler for send command button
+            document.getElementById('send-command').addEventListener('click', sendCommand);
+            
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.altKey) {
+                    switch(e.key.toLowerCase()) {
+                        case 'w': quickMove('forward'); e.preventDefault(); break;
+                        case 's': quickMove('backward'); e.preventDefault(); break;
+                        case 'a': quickMove('left'); e.preventDefault(); break;
+                        case 'd': quickMove('right'); e.preventDefault(); break;
+                        case ' ': quickMove('stop'); e.preventDefault(); break;
+                    }
+                }
+            });
         });
 
         // Update uptime counter
@@ -645,9 +659,47 @@
             responseDiv.scrollTop = responseDiv.scrollHeight;
         }
 
+        // Show status message
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'flex';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Update connection status
+        function updateConnectionStatus(status) {
+            const dot = document.getElementById('connection-dot');
+            const text = document.getElementById('connection-text');
+            
+            dot.className = `status-dot ${status}`;
+            
+            switch(status) {
+                case 'connected':
+                    text.textContent = 'Connected';
+                    isConnected = true;
+                    break;
+                case 'connecting':
+                    text.textContent = 'Connecting...';
+                    isConnected = false;
+                    break;
+                case 'disconnected':
+                default:
+                    text.textContent = 'Disconnected';
+                    isConnected = false;
+                    break;
+            }
+        }
+
         // Set predefined prompts
         function setPrompt(text) {
             document.getElementById('user-prompt').value = text;
+            addLogEntry(`Preset selected: "${text}"`, 'info');
         }
 
         // Quick movement controls
@@ -667,6 +719,7 @@
             
             if (commands[direction]) {
                 document.getElementById('user-prompt').value = commands[direction];
+                addLogEntry(`Quick control: ${direction.toUpperCase()}`, 'command');
                 sendCommand();
             }
         }
@@ -680,10 +733,11 @@
 
             const prompt = `motor ${motorNum} ${direction} at ${currentSpeed}% speed for ${currentDuration} seconds`;
             document.getElementById('user-prompt').value = prompt;
+            addLogEntry(`Individual motor control: Motor ${motorNum} ${direction}`, 'command');
             sendCommand();
         }
 
-        // Main send command function with improved feedback
+        // Main send command function
         async function sendCommand() {
             if (commandInProgress) {
                 showStatus('⏳ Command already in progress, please wait...', 'warning');
@@ -695,11 +749,13 @@
             
             if (!userPrompt) {
                 showStatus('❌ Please enter a command', 'error');
+                addLogEntry('Error: No command entered', 'error');
                 return;
             }
             
             if (!functionUrl) {
                 showStatus('❌ Please enter Azure Function URL', 'error');
+                addLogEntry('Error: No Azure Function URL provided', 'error');
                 return;
             }
 
@@ -719,6 +775,7 @@
             const progressBar = document.getElementById('command-progress');
             const progressFill = document.getElementById('progress-fill');
             progressBar.style.display = 'block';
+            progressFill.style.background = 'var(--primary)';
             
             let progress = 0;
             const progressInterval = setInterval(() => {
@@ -798,4 +855,187 @@ Return ONLY valid JSON.`
                     
                     controlButtons.forEach(btn => btn.disabled = false);
                     
-                    progressBar.style
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                    progressFill.style.background = 'var(--primary)';
+                }, 1000);
+            }
+        }
+
+        // Show status message with auto-hide
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<span>${message}</span>`;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'flex';
+            
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 4000);
+            }
+        }
+
+        // Update connection status with better visual feedback
+        function updateConnectionStatus(status) {
+            const dot = document.getElementById('connection-dot');
+            const text = document.getElementById('connection-text');
+            
+            dot.classList.remove('connected', 'connecting');
+            
+            switch(status) {
+                case 'connected':
+                    isConnected = true;
+                    dot.classList.add('connected');
+                    text.textContent = 'Connected to Rover';
+                    break;
+                case 'connecting':
+                    dot.classList.add('connecting');
+                    text.textContent = 'Connecting...';
+                    break;
+                case 'disconnected':
+                default:
+                    isConnected = false;
+                    text.textContent = 'Connection Failed';
+                    break;
+            }
+        }
+
+        // Enhanced utility functions
+        function clearLog() {
+            document.getElementById('response').textContent = '📋 Log cleared...\n🔄 System ready for new commands';
+            addLogEntry('Log cleared by user', 'info');
+        }
+
+        function testConnection() {
+            const functionUrl = document.getElementById('function-url').value.trim();
+            
+            if (!functionUrl) {
+                showStatus('❌ Please enter Azure Function URL first', 'error');
+                return;
+            }
+            
+            addLogEntry('Testing connection to Azure Function...', 'info');
+            showStatus('🔗 Testing connection...', 'info');
+            
+            // Simple ping test
+            fetch(functionUrl, {
+                method: 'HEAD',
+                mode: 'no-cors'
+            }).then(() => {
+                addLogEntry('✓ Connection test successful', 'success');
+                showStatus('✅ Connection test successful', 'success');
+                updateConnectionStatus('connected');
+            }).catch(error => {
+                addLogEntry('✗ Connection test failed', 'error');
+                showStatus('❌ Connection test failed', 'error');
+                updateConnectionStatus('disconnected');
+            });
+        }
+
+        function emergencyStop() {
+            document.getElementById('user-prompt').value = 'emergency stop all motors immediately';
+            addLogEntry('🛑 EMERGENCY STOP INITIATED', 'warning');
+            sendCommand();
+        }
+
+        function exportLog() {
+            const logContent = document.getElementById('response').textContent;
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rover_log_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addLogEntry('📄 Log exported successfully', 'success');
+        }
+
+        // Event listeners
+        document.getElementById('send-command').addEventListener('click', sendCommand);
+        
+        // Allow Enter key to send command (Ctrl+Enter)
+        document.getElementById('user-prompt').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                sendCommand();
+            }
+        });
+
+        // Enhanced keyboard shortcuts with feedback
+        document.addEventListener('keydown', function(e) {
+            if (e.altKey && !commandInProgress) {
+                switch(e.key.toLowerCase()) {
+                    case 'w': 
+                        quickMove('forward'); 
+                        e.preventDefault();
+                        addLogEntry('Keyboard shortcut: Forward', 'info');
+                        break;
+                    case 's': 
+                        quickMove('backward'); 
+                        e.preventDefault();
+                        addLogEntry('Keyboard shortcut: Backward', 'info');
+                        break;
+                    case 'a': 
+                        quickMove('left'); 
+                        e.preventDefault();
+                        addLogEntry('Keyboard shortcut: Turn Left', 'info');
+                        break;
+                    case 'd': 
+                        quickMove('right'); 
+                        e.preventDefault();
+                        addLogEntry('Keyboard shortcut: Turn Right', 'info');
+                        break;
+                    case ' ': 
+                        quickMove('stop'); 
+                        e.preventDefault();
+                        addLogEntry('Keyboard shortcut: Emergency Stop', 'warning');
+                        break;
+                }
+            }
+        });
+
+        // Auto-save function URL
+        document.getElementById('function-url').addEventListener('change', function() {
+            localStorage.setItem('rover_function_url', this.value);
+            addLogEntry('Function URL saved', 'info');
+        });
+
+        // Load saved function URL on startup
+        window.addEventListener('load', function() {
+            const savedUrl = localStorage.getItem('rover_function_url');
+            if (savedUrl) {
+                document.getElementById('function-url').value = savedUrl;
+                addLogEntry('Previous function URL loaded', 'info');
+            }
+        });
+
+        // Add visual feedback for button clicks
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('btn') || e.target.classList.contains('control-btn')) {
+                e.target.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    if (e.target.style) {
+                        e.target.style.transform = '';
+                    }
+                }, 100);
+            }
+        });
+
+        // Add tooltips for better UX
+        const tooltips = {
+            'send-command': 'Click to send command or use Ctrl+Enter in text area',
+            'speed-slider': 'Adjust motor speed from 0% to 100%',
+            'duration-slider': 'Set command duration from 0.5 to 10 seconds',
+            'function-url': 'Enter your Azure Function endpoint URL'
+        };
+
+        Object.keys(tooltips).forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.title = tooltips[id];
+            }
+        });
+    </script>
+</body>
+</html>
