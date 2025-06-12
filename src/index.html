@@ -161,6 +161,18 @@
             background: #333;
             border-radius: 8px;
         }
+
+        .json-display {
+            background: #1a1a1a;
+            border: 1px solid #555;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #00ff00;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body>
@@ -179,7 +191,8 @@
 • Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds
 • Move forward for 2 seconds
 • Turn left for 1 second
-• Stop all motors">Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds</textarea>
+• Stop all motors
+• Run motor 1 forward 2 seconds while motor 2 forward 7 seconds">Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds</textarea>
             </div>
 
             <div class="preset-commands">
@@ -189,6 +202,7 @@
                 <div class="preset-btn" onclick="setPrompt('turn right for 1 second')">Right</div>
                 <div class="preset-btn" onclick="setPrompt('stop all motors')">Stop</div>
                 <div class="preset-btn" onclick="setPrompt('motor 1 forward for 3 seconds while motor 2 backward for 5 seconds')">Independent Motors</div>
+                <div class="preset-btn" onclick="setPrompt('run motor 1 forward 2 seconds while motor 2 forward 7 seconds')">Different Duration</div>
             </div>
 
             <button class="btn" id="send-command" onclick="sendCommand()" style="width: 100%;">
@@ -239,11 +253,12 @@
 
 📝 Command Examples:
 • "Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds"
-• "Move forward for 2 seconds"
+• "Move forward for 2 seconds"  
 • "Turn left for 1 second"
 • "Stop all motors"
+• "Run motor 1 forward 2 seconds while motor 2 forward 7 seconds"
 
-The system now properly handles independent motor timing!
+The system now properly handles complex motor timing and Azure function communication!
 </div>
             
             <div id="status" class="status" style="display: none;"></div>
@@ -322,32 +337,100 @@ The system now properly handles independent motor timing!
             addLog(`Command: "${userPrompt}"`, 'info');
             showStatus('Sending command to rover...', 'info');
 
-            // Enhanced system prompt for better motor control
-            const systemPrompt = `You are a 2WD rover motor controller. Convert natural language to JSON commands with precise timing.
+            // System prompt matching your Azure function's expectations
+            const systemPrompt = `You are a command interpreter for an IoT Raspberry Pi 2WD rover that controls two DC motors through L298N motor driver.
 
-IMPORTANT RULES:
-1. For independent motor timing (e.g., "motor 1 for 3s while motor 2 for 5s"), create separate commands with different durations
-2. Motors are: motor1 (left), motor2 (right)
-3. Directions: "forward", "backward", "stop"
-4. Speed: 0-100 (default 70)
-5. Duration: in seconds (default 2)
+Convert natural language into structured JSON commands. Return ONLY the JSON with no comments, code blocks, or explanations.
 
-MOVEMENT PATTERNS:
-- "move forward" = both motors forward same speed/time
-- "move backward" = both motors backward same speed/time  
-- "turn left" = motor1 backward, motor2 forward
-- "turn right" = motor1 forward, motor2 backward
-- "stop" = both motors stop
+IMPORTANT: When motors need to run for different durations, create a sequence of commands to handle the timing properly.
 
-OUTPUT FORMAT (JSON array):
-For same timing: [{"motor": "motor1", "direction": "forward", "speed": 70, "duration": 2}]
-For different timing: [{"motor": "motor1", "direction": "forward", "speed": 70, "duration": 3}, {"motor": "motor2", "direction": "backward", "speed": 70, "duration": 5}]
+Command formats:
+
+For single motor control:
+{
+    "command": "motor",
+    "motor": 1 or 2,
+    "direction": "forward" | "backward" | "stop",
+    "speed": <0-100>,
+    "duration": <seconds>
+}
+
+For synchronized dual motor control (same duration):
+{
+    "command": "dual_motor",
+    "motor1": {
+        "direction": "forward" | "backward" | "stop",
+        "speed": <0-100>
+    },
+    "motor2": {
+        "direction": "forward" | "backward" | "stop",
+        "speed": <0-100>
+    },
+    "duration": <seconds>
+}
+
+For rover movement commands (synchronized motors):
+{
+    "command": "rover",
+    "movement": "forward" | "backward" | "left" | "right" | "stop",
+    "speed": <0-100>,
+    "duration": <seconds>
+}
+
+For sequential commands (different durations or complex sequences):
+{
+    "command": "sequence",
+    "commands": [
+        {
+            "command": "dual_motor",
+            "motor1": {"direction": "forward", "speed": 50},
+            "motor2": {"direction": "backward", "speed": 50},
+            "duration": 3
+        },
+        {
+            "command": "motor",
+            "motor": 2,
+            "direction": "stop",
+            "speed": 0,
+            "duration": 0
+        },
+        {
+            "command": "motor", 
+            "motor": 1,
+            "direction": "forward",
+            "speed": 50,
+            "duration": 2
+        }
+    ]
+}
+
+Movement interpretations:
+- "move forward/backward" → rover command
+- "turn left/right" → rover command with left/right movement
+- "motor 1" or "left motor" → motor command with motor: 1
+- "motor 2" or "right motor" → motor command with motor: 2
+- "spin clockwise" → dual_motor with motor1 forward, motor2 backward
+- "spin counterclockwise" → dual_motor with motor1 backward, motor2 forward
+- Different durations → sequence command
+
+Speed mappings:
+- slow = 30
+- medium/normal = 50  
+- fast = 80
+- full/max = 100
+
+Duration mappings:
+- quick = 1 second
+- short = 2 seconds
+- medium = 3 seconds
+- long = 5 seconds
 
 Examples:
-"motor 1 forward 3s while motor 2 backward 5s" → [{"motor": "motor1", "direction": "forward", "speed": 70, "duration": 3}, {"motor": "motor2", "direction": "backward", "speed": 70, "duration": 5}]
-"move forward 2 seconds" → [{"motor": "motor1", "direction": "forward", "speed": 70, "duration": 2}, {"motor": "motor2", "direction": "forward", "speed": 70, "duration": 2}]
+"Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds" should create a sequence:
+1. Both motors start (dual_motor for 3 seconds)
+2. Motor 1 stops, motor 2 continues (motor 2 for 2 more seconds)
 
-ALWAYS respond with valid JSON array only, no explanations.`;
+Return ONLY the JSON. No explanations, code blocks, or comments.`;
 
             try {
                 const response = await fetch(functionUrl, {
@@ -365,26 +448,42 @@ ALWAYS respond with valid JSON array only, no explanations.`;
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
-                const data = await response.text();
-                addLog(`Response: ${data}`, 'success');
-                showStatus('Command sent successfully!', 'success');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    addLog(`✅ Command processed successfully!`, 'success');
+                    addLog(`Generated JSON Command:`, 'info');
+                    addLog(JSON.stringify(data.generated_json, null, 2), 'info');
+                    addLog(`IoT Status: ${data.iot_status}`, data.iot_status.includes('failed') ? 'error' : 'success');
+                    addLog(`Device ID: ${data.device_id}`, 'info');
+                    
+                    showStatus('Command sent successfully to rover!', 'success');
 
-                // Try to parse and display the motor commands
-                try {
-                    const commands = JSON.parse(data);
-                    if (Array.isArray(commands)) {
-                        addLog(`Parsed ${commands.length} motor command(s):`, 'info');
-                        commands.forEach((cmd, i) => {
-                            addLog(`  ${i+1}. ${cmd.motor} ${cmd.direction} ${cmd.speed}% for ${cmd.duration}s`, 'info');
+                    // Display command details based on type
+                    const cmd = data.generated_json;
+                    if (cmd.command === 'sequence') {
+                        addLog(`📋 Sequence with ${cmd.commands.length} steps:`, 'info');
+                        cmd.commands.forEach((step, i) => {
+                            addLog(`  Step ${i+1}: ${step.command} - ${JSON.stringify(step).substring(0, 100)}...`, 'info');
                         });
+                    } else if (cmd.command === 'dual_motor') {
+                        addLog(`🔄 Dual Motor: M1(${cmd.motor1.direction} ${cmd.motor1.speed}%) M2(${cmd.motor2.direction} ${cmd.motor2.speed}%) for ${cmd.duration}s`, 'info');
+                    } else if (cmd.command === 'motor') {
+                        addLog(`⚙️ Single Motor: M${cmd.motor} ${cmd.direction} ${cmd.speed}% for ${cmd.duration}s`, 'info');
+                    } else if (cmd.command === 'rover') {
+                        addLog(`🤖 Rover Movement: ${cmd.movement} at ${cmd.speed}% for ${cmd.duration}s`, 'info');
                     }
-                } catch (e) {
-                    // Response is not JSON, that's okay
+                } else {
+                    addLog(`❌ Azure Function Error: ${data.error}`, 'error');
+                    if (data.ai_response) {
+                        addLog(`AI Response: ${data.ai_response}`, 'warning');
+                    }
+                    showStatus(`Error: ${data.error}`, 'error');
                 }
 
             } catch (error) {
-                addLog(`Error: ${error.message}`, 'error');
-                showStatus(`Error: ${error.message}`, 'error');
+                addLog(`💥 Network Error: ${error.message}`, 'error');
+                showStatus(`Network Error: ${error.message}`, 'error');
             } finally {
                 commandInProgress = false;
                 sendButton.textContent = '🚀 Send Command';
@@ -416,6 +515,7 @@ ALWAYS respond with valid JSON array only, no explanations.`;
 
         // Initialize
         addLog('System initialized. Use Alt+W/A/S/D for movement, Alt+Space to stop', 'info');
+        addLog('Now supports complex commands like "run motor 1 forward 2 seconds while motor 2 forward 7 seconds"', 'info');
     </script>
 </body>
 </html>
