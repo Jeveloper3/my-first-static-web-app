@@ -312,12 +312,18 @@
                 
                 <div class="form-group">
                     <label>Tell your rover what to do:</label>
-                    <textarea id="user-prompt" placeholder="Examples:
+                    <textarea id="user-prompt" placeholder="Examples (use 'and' or 'then', NOT commas):
 • Move forward for 2 seconds
 • Turn left
-• Turn right  
-• Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds
-• Stop all motors">Move forward for 2 seconds</textarea>
+• Move forward 2 seconds and turn right
+• Turn left then move backward for 5 seconds
+• Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds">Move forward for 2 seconds</textarea>
+                </div>
+
+                <div style="background: #3a3a3a; padding: 10px; border-radius: 5px; margin: 10px 0; font-size: 12px; border-left: 3px solid #ff9800;">
+                    <strong>⚠️ Important:</strong> Use "and" or "then" to connect commands, NOT commas (,)
+                    <br>✅ Good: "move forward and turn left"
+                    <br>❌ Bad: "move forward, turn left"
                 </div>
 
                 <div class="preset-commands">
@@ -327,6 +333,7 @@
                     <div class="preset-btn" onclick="setPrompt('turn left')">Turn Left</div>
                     <div class="preset-btn" onclick="setPrompt('turn right')">Turn Right</div>
                     <div class="preset-btn" onclick="setPrompt('stop all motors')">Stop</div>
+                    <div class="preset-btn" onclick="setPrompt('move forward 2 seconds and turn left and move forward 2 seconds')">Sequence</div>
                     <div class="preset-btn" onclick="setPrompt('motor 1 forward for 3 seconds while motor 2 backward for 5 seconds')">Independent</div>
                 </div>
 
@@ -427,7 +434,19 @@
 2. Image Navigation - Upload map for obstacle avoidance
 3. Manual Control - Direct button control
 
-🎯 Image Navigation Instructions:
+⚠️ IMPORTANT - Command Format Rules:
+• Use "and" or "then" to connect commands (NOT commas)
+• ✅ Good: "move forward and turn left"
+• ❌ Bad: "move forward, turn left"
+• The system will auto-fix commas, but best to avoid them
+
+🎯 Text Command Examples:
+• "move forward for 2 seconds"
+• "turn left and move backward for 3 seconds"
+• "move forward 2 seconds and turn right and move forward 2 seconds"
+• "motor 1 forward for 3 seconds while motor 2 backward for 5 seconds"
+
+🖼️ Image Navigation Instructions:
 • Upload JPG/PNG image of your area (max 2.5m × 2.5m)
 • Dark areas = obstacles, Light areas = free space
 • Add optional navigation instructions
@@ -585,7 +604,7 @@ Ready to send commands!
                 return;
             }
 
-            const userPrompt = document.getElementById('user-prompt').value.trim();
+            let userPrompt = document.getElementById('user-prompt').value.trim();
             const functionUrl = document.getElementById('function-url').value.trim();
             
             if (!userPrompt) {
@@ -596,6 +615,15 @@ Ready to send commands!
             if (!functionUrl) {
                 showStatus('Please enter Azure Function URL', 'error');
                 return;
+            }
+
+            // Auto-fix commas: replace ", " with " and "
+            if (userPrompt.includes(',')) {
+                const originalPrompt = userPrompt;
+                userPrompt = userPrompt.replace(/,\s+/g, ' and ');
+                addLog(`⚠️ Auto-fixed commas in command`, 'warning');
+                addLog(`Original: "${originalPrompt}"`, 'info');
+                addLog(`Fixed: "${userPrompt}"`, 'info');
             }
 
             commandInProgress = true;
@@ -669,6 +697,12 @@ Respond with valid JSON only.`;
             } catch (error) {
                 addLog(`Error: ${error.message}`, 'error');
                 showStatus(`Error: ${error.message}`, 'error');
+                
+                // Provide helpful error messages
+                if (error.message.includes('400')) {
+                    addLog(`💡 Tip: Avoid using commas. Use "and" or "then" instead`, 'warning');
+                    addLog(`Example: "move forward and turn left" (not "forward, turn left")`, 'info');
+                }
             } finally {
                 commandInProgress = false;
                 sendButton.textContent = '🚀 Send Command';
