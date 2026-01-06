@@ -311,19 +311,22 @@
                 <h3>🗣️ Natural Language Control</h3>
                 
                 <div class="form-group">
-                    <label>Tell your rover what to do:</label>
-                    <textarea id="user-prompt" placeholder="Examples (use 'and' or 'then', NOT commas):
+                    <label>Tell your rover what to do (Natural Language):</label>
+                    <textarea id="user-prompt" placeholder="Use natural language - commas, periods, any style:
 • Move forward for 2 seconds
-• Turn left
-• Move forward 2 seconds and turn right
-• Turn left then move backward for 5 seconds
-• Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds">Move forward for 2 seconds</textarea>
+• Forward 1 sec, turn left, forward 1.5 sec, backward 1 sec
+• Go forward. Turn right. Move backward. Turn left.
+• Move forward 2 seconds and turn left and forward 3 seconds
+• Motor 1 forward 3 seconds while motor 2 backward 5 seconds
+
+You can chain up to 20 actions in one command!">Move forward for 2 seconds</textarea>
                 </div>
 
-                <div style="background: #3a3a3a; padding: 10px; border-radius: 5px; margin: 10px 0; font-size: 12px; border-left: 3px solid #ff9800;">
-                    <strong>⚠️ Important:</strong> Use "and" or "then" to connect commands, NOT commas (,)
-                    <br>✅ Good: "move forward and turn left"
-                    <br>❌ Bad: "move forward, turn left"
+                <div style="background: #2d4a2d; padding: 10px; border-radius: 5px; margin: 10px 0; font-size: 12px; border-left: 3px solid #4caf50;">
+                    <strong>✅ Natural Language Support:</strong><br>
+                    • Use commas, periods, "and", "then" - any style you like!<br>
+                    • Up to 20 movement commands per instruction<br>
+                    • Example: "forward 1s, left, forward 2s" ← This works now!
                 </div>
 
                 <div class="preset-commands">
@@ -333,7 +336,7 @@
                     <div class="preset-btn" onclick="setPrompt('turn left')">Turn Left</div>
                     <div class="preset-btn" onclick="setPrompt('turn right')">Turn Right</div>
                     <div class="preset-btn" onclick="setPrompt('stop all motors')">Stop</div>
-                    <div class="preset-btn" onclick="setPrompt('move forward 2 seconds and turn left and move forward 2 seconds')">Sequence</div>
+                    <div class="preset-btn" onclick="setPrompt('forward 1s, left, forward 2s, right, backward 1s')">Complex Path</div>
                     <div class="preset-btn" onclick="setPrompt('motor 1 forward for 3 seconds while motor 2 backward for 5 seconds')">Independent</div>
                 </div>
 
@@ -467,28 +470,26 @@ response = client.chat.completions.create(
             <h3>📊 Response Log</h3>
             <div id="response" class="output">🚀 Rover Control System Ready (100% Speed Mode)
 
-📝 Available Control Methods:
-1. Text Commands - Natural language rover control
-2. Image Navigation - Upload map for obstacle avoidance
-3. Manual Control - Direct button control
+📝 Natural Language Control:
+• Use ANY natural language style - commas, periods, "and", "then", etc.
+• Chain up to 20 movement commands in one instruction
+• The AI will intelligently parse your commands
 
-⚠️ IMPORTANT - Command Format Rules:
-• Use "and" or "then" to connect commands (NOT commas)
-• ✅ Good: "move forward and turn left"
-• ❌ Bad: "move forward, turn left"
-• The system will auto-fix commas, but best to avoid them
+✅ All These Work Now:
+• "Move forward 1s, turn left, forward 1.5s, backward 1s"
+• "Go forward. Turn right. Move backward. Stop."
+• "forward 2 seconds and turn left and forward 3 seconds"
+• "Move forward, left, forward, right, backward"
 
-🎯 Text Command Examples:
-• "move forward for 2 seconds"
-• "turn left and move backward for 3 seconds"
-• "move forward 2 seconds and turn right and move forward 2 seconds"
-• "motor 1 forward for 3 seconds while motor 2 backward for 5 seconds"
+🎯 Movement Types:
+• forward/backward (with duration in seconds)
+• left/right turns (use calibrated durations)
+• stop
 
-🖼️ Image Navigation Instructions:
-• Upload JPG/PNG image of your area (max 2.5m × 2.5m)
-• Dark areas = obstacles, Light areas = free space
-• Add optional navigation instructions
-• AI will generate navigation sequence
+🖼️ Image Navigation:
+• Upload JPG/PNG map of your area
+• AI analyzes obstacles and plans path
+• Generates sequence of up to 20 movements
 
 Ready to send commands!
 </div>
@@ -655,16 +656,12 @@ Ready to send commands!
                 return;
             }
 
-            // Auto-fix commas: replace ", " with " and "
-            if (userPrompt.includes(',')) {
-                const originalPrompt = userPrompt;
-                userPrompt = userPrompt.replace(/,\s+/g, ' and ');
-                addLog(`⚠️ Auto-fixed commas in command`, 'warning');
-                addLog(`Original: "${originalPrompt}"`, 'info');
-                addLog(`Fixed: "${userPrompt}"`, 'info');
-            }
-
-            commandInProgress = true;
+            // Preprocess command to help AI parse it better
+            // Don't auto-fix - just clean up whitespace
+            userPrompt = userPrompt.trim().replace(/\s+/g, ' ');
+            
+            // Log original command
+            addLog(`📝 Original: "${userPrompt}"`, 'info');
             const sendButton = document.getElementById('send-command');
             sendButton.textContent = '🔄 Sending...';
             sendButton.disabled = true;
@@ -672,37 +669,113 @@ Ready to send commands!
             addLog(`Command: "${userPrompt}"`, 'info');
             showStatus('Sending command to rover...', 'info');
 
-            const systemPrompt = `You are a 2WD rover motor controller. Convert natural language to JSON commands.
+            const systemPrompt = `You are an expert natural language processor for a 2WD rover. Parse ANY natural language command into a sequence of rover movements.
 
-IMPORTANT: All movements are at 100% speed. Turn durations are calibrated on the Pi.
+CRITICAL RULES:
+1. Accept ALL natural language: commas, periods, semicolons, "and", "then", etc.
+2. Parse up to 20 movement commands per instruction
+3. All movements are at 100% speed (no speed parameter)
+4. Turn durations are calibrated on the Raspberry Pi (omit duration for turns)
 
-COMMAND FORMATS:
+COMMAND STRUCTURE:
+Output a JSON sequence with individual movement commands:
+{
+  "command": "sequence",
+  "commands": [
+    {"command": "rover", "movement": "forward", "duration": 2},
+    {"command": "rover", "movement": "left"},
+    {"command": "rover", "movement": "forward", "duration": 1.5}
+  ]
+}
 
-1. ROVER MOVEMENT (forward/backward/left/right/stop):
-{"command": "rover", "movement": "forward", "duration": 2}
+MOVEMENT TYPES:
+- "forward" / "forwards" / "ahead" / "straight"
+- "backward" / "backwards" / "back" / "reverse"
+- "left" / "turn left" / "rotate left"
+- "right" / "turn right" / "rotate right"
+- "stop" / "halt" / "brake"
 
-For turns (uses Pi's calibrated duration):
-{"command": "rover", "movement": "left"}
+DURATION PARSING:
+- "for X seconds" → duration: X
+- "X seconds" → duration: X
+- "for X" → duration: X
+- No duration specified for forward/backward → use 2 seconds default
+- Turns NEVER have duration (calibrated on Pi)
 
-2. INDIVIDUAL MOTOR:
-{"command": "motor", "motor": 1, "direction": "forward", "duration": 3}
+NATURAL LANGUAGE PARSING EXAMPLES:
 
-3. INDEPENDENT TIMING (e.g., "motor 1 for 3s while motor 2 for 5s"):
-{"command": "sequence", "commands": [
-  {"command": "motor", "motor": 1, "direction": "forward", "duration": 3},
-  {"command": "motor", "motor": 2, "direction": "backward", "duration": 5}
-]}
+Input: "Move forward for 1 second and turn left, forward for 1.5 seconds, backward for 1 second"
+Output: {
+  "command": "sequence",
+  "commands": [
+    {"command": "rover", "movement": "forward", "duration": 1},
+    {"command": "rover", "movement": "left"},
+    {"command": "rover", "movement": "forward", "duration": 1.5},
+    {"command": "rover", "movement": "backward", "duration": 1}
+  ]
+}
 
-4. DUAL MOTOR (same duration):
-{"command": "dual_motor", "motor1": {"direction": "forward"}, "motor2": {"direction": "forward"}, "duration": 2}
+Input: "Go forward 2 seconds. Turn right. Move backward 3 seconds. Turn left. Forward 1 second."
+Output: {
+  "command": "sequence",
+  "commands": [
+    {"command": "rover", "movement": "forward", "duration": 2},
+    {"command": "rover", "movement": "right"},
+    {"command": "rover", "movement": "backward", "duration": 3},
+    {"command": "rover", "movement": "left"},
+    {"command": "rover", "movement": "forward", "duration": 1}
+  ]
+}
 
-RULES:
-- Motors: 1 (left), 2 (right)
-- Directions: "forward", "backward", "stop"
-- Default duration: 2 seconds
-- Turns: omit duration (Pi uses calibrated values)
+Input: "forward, left, forward, right, backward"
+Output: {
+  "command": "sequence",
+  "commands": [
+    {"command": "rover", "movement": "forward", "duration": 2},
+    {"command": "rover", "movement": "left"},
+    {"command": "rover", "movement": "forward", "duration": 2},
+    {"command": "rover", "movement": "right"},
+    {"command": "rover", "movement": "backward", "duration": 2}
+  ]
+}
 
-Respond with valid JSON only.`;
+Input: "Move forward 1 second and turn left and forward 1.5 seconds"
+Output: {
+  "command": "sequence",
+  "commands": [
+    {"command": "rover", "movement": "forward", "duration": 1},
+    {"command": "rover", "movement": "left"},
+    {"command": "rover", "movement": "forward", "duration": 1.5}
+  ]
+}
+
+PARSING STRATEGY:
+1. Split command by: commas, periods, semicolons, "and", "then"
+2. For each segment, identify:
+   - Movement type (forward/backward/left/right/stop)
+   - Duration (if forward/backward and specified)
+3. Turns always omit duration
+4. Default to 2 seconds for forward/backward if not specified
+
+COMPLEX SEQUENCES:
+Handle up to 20 movements in one command. Break down long natural descriptions into step-by-step movements.
+
+INDEPENDENT MOTOR TIMING:
+For "motor 1 for Xs while motor 2 for Ys" use different format:
+{
+  "command": "sequence",
+  "commands": [
+    {"command": "motor", "motor": 1, "direction": "forward", "duration": X},
+    {"command": "motor", "motor": 2, "direction": "backward", "duration": Y}
+  ]
+}
+
+RESPONSE FORMAT:
+- Output ONLY valid JSON
+- No explanations, markdown, or code blocks
+- Use the exact structure shown above
+
+Remember: Be flexible with natural language. Users may use any punctuation or connector words. Extract the movement sequence intelligently.`;
 
             try {
                 const response = await fetch(functionUrl, {
@@ -725,21 +798,27 @@ Respond with valid JSON only.`;
                 try {
                     const cmd = JSON.parse(data);
                     if (cmd.command) {
-                        addLog(`Command type: ${cmd.command}`, 'info');
-                        if (cmd.command === 'sequence') {
-                            addLog(`Sequence with ${cmd.commands.length} steps`, 'info');
+                        addLog(`✓ Command type: ${cmd.command}`, 'info');
+                        if (cmd.command === 'sequence' && cmd.commands) {
+                            addLog(`✓ Parsed ${cmd.commands.length} movement steps:`, 'success');
+                            cmd.commands.forEach((step, i) => {
+                                const movement = step.movement || `motor ${step.motor}`;
+                                const duration = step.duration ? ` (${step.duration}s)` : ' (calibrated)';
+                                addLog(`  ${i+1}. ${movement}${duration}`, 'info');
+                            });
                         }
                     }
-                } catch (e) {}
+                } catch (e) {
+                    // Response not JSON, that's okay
+                }
 
             } catch (error) {
                 addLog(`Error: ${error.message}`, 'error');
                 showStatus(`Error: ${error.message}`, 'error');
                 
-                // Provide helpful error messages
                 if (error.message.includes('400')) {
-                    addLog(`💡 Tip: Avoid using commas. Use "and" or "then" instead`, 'warning');
-                    addLog(`Example: "move forward and turn left" (not "forward, turn left")`, 'info');
+                    addLog(`💡 The AI couldn't parse your command. Try being more explicit:`, 'warning');
+                    addLog(`Example: "forward 1 second, turn left, forward 2 seconds"`, 'info');
                 }
             } finally {
                 commandInProgress = false;
@@ -784,15 +863,15 @@ Respond with valid JSON only.`;
             // Build comprehensive prompt including area info
             const userPrompt = `${navInstructions}\n\nArea specifications:\n- Size: ${areaWidth}m × ${areaHeight}m\n- Rover speed: 100% (approximately 0.3-0.5 meters per second)\n- All turns use calibrated durations from the Raspberry Pi\n\nAnalyze the image and generate a safe navigation path as a sequence of rover commands.`;
 
-            const systemPrompt = `You are a rover navigation system with computer vision. Analyze the uploaded image and generate a navigation sequence.
+            const systemPrompt = `You are an expert rover navigation system with computer vision. Analyze images and generate navigation sequences with up to 20 movement commands.
 
-IMAGE ANALYSIS INSTRUCTIONS:
+IMAGE ANALYSIS:
 1. Identify obstacles (dark/black areas) and free space (light/white areas)
-2. Determine start position (typically bottom-center or marked)
+2. Determine start position and goal (if marked)
 3. Plan optimal path avoiding obstacles with safety margin
-4. Generate movement sequence using rover commands
+4. Generate detailed step-by-step movement sequence
 
-OUTPUT FORMAT:
+NAVIGATION OUTPUT:
 {
   "command": "sequence",
   "commands": [
@@ -800,20 +879,56 @@ OUTPUT FORMAT:
     {"command": "rover", "movement": "left"},
     {"command": "rover", "movement": "forward", "duration": 3},
     {"command": "rover", "movement": "right"},
-    {"command": "rover", "movement": "forward", "duration": 1.5}
+    {"command": "rover", "movement": "backward", "duration": 1}
   ]
 }
 
-RULES:
+MOVEMENT RULES:
 - All movements at 100% speed
-- Forward/backward: include duration in seconds
-- Turns (left/right): omit duration (Pi uses calibrated values)
-- Consider rover size (~20cm wide)
-- Add safety margin around obstacles
-- Keep path simple and sequential
-- Estimate: 1 second forward ≈ 0.3-0.5 meters
+- Forward/backward: include duration in seconds (estimate based on distance)
+- Turns (left/right): omit duration (Pi uses calibrated values ~0.35-0.50s for 90°)
+- Generate 5-20 movements for complex paths
+- Break long straight lines into shorter segments for better control
 
-Respond with valid JSON containing the navigation sequence only.`;
+DISTANCE ESTIMATION:
+- 1 second forward ≈ 0.3-0.5 meters at 100% speed
+- Rover width ≈ 0.2 meters (20cm)
+- Add 0.1m safety margin around obstacles
+- Consider turning radius when planning corners
+
+PATH PLANNING STRATEGY:
+1. Start from rover's current position
+2. Identify waypoints or goal markers
+3. Plan shortest safe path avoiding obstacles
+4. Break path into movement segments
+5. Generate sequence of: forward → turn → forward → turn → etc.
+
+COMPLEX PATHS:
+For intricate navigation through multiple obstacles:
+- Use 10-20 movement commands
+- Alternate forward movements with directional corrections
+- Keep forward durations between 0.5-5 seconds
+- Use turns to navigate around obstacles
+
+Example complex sequence:
+[
+  {"command": "rover", "movement": "forward", "duration": 1.5},
+  {"command": "rover", "movement": "right"},
+  {"command": "rover", "movement": "forward", "duration": 2},
+  {"command": "rover", "movement": "left"},
+  {"command": "rover", "movement": "forward", "duration": 1},
+  {"command": "rover", "movement": "left"},
+  {"command": "rover", "movement": "forward", "duration": 2.5},
+  {"command": "rover", "movement": "right"},
+  {"command": "rover", "movement": "forward", "duration": 1}
+]
+
+OUTPUT FORMAT:
+- Valid JSON only
+- No explanations or markdown
+- Use exact structure shown above
+
+Analyze the image and generate a safe, efficient navigation path.`;
 
             try {
                 const response = await fetch(functionUrl, {
