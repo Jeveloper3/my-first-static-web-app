@@ -14,7 +14,7 @@
         }
         
         .container {
-            max-width: 1000px;
+            max-width: 800px;
             margin: 0 auto;
         }
         
@@ -24,19 +24,6 @@
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
-        }
-        
-        .calibration-info {
-            background: #2a2a2a;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #ff9800;
-            margin-bottom: 20px;
-        }
-        
-        .calibration-info h4 {
-            margin-top: 0;
-            color: #ff9800;
         }
         
         .card {
@@ -55,10 +42,9 @@
             display: block;
             margin-bottom: 5px;
             color: #ccc;
-            font-weight: 500;
         }
         
-        input, textarea {
+        input, textarea, select {
             width: 100%;
             padding: 10px;
             background: #333;
@@ -102,19 +88,6 @@
             background: #d32f2f;
         }
         
-        .btn-small {
-            padding: 8px 12px;
-            font-size: 14px;
-        }
-        
-        .btn-success {
-            background: #4caf50;
-        }
-        
-        .btn-success:hover {
-            background: #388e3c;
-        }
-        
         .control-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -141,7 +114,6 @@
             overflow-y: auto;
             font-family: monospace;
             white-space: pre-wrap;
-            font-size: 13px;
         }
         
         .status {
@@ -158,7 +130,7 @@
         .preset-commands {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
             margin: 15px 0;
         }
         
@@ -176,113 +148,18 @@
             background: #555;
         }
         
-        .duration-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 15px 0;
-        }
-        
-        .duration-control input {
-            width: 80px;
-        }
-        
-        .info-badge {
-            display: inline-block;
-            background: #ff9800;
-            color: #000;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-left: 8px;
-        }
-
-        .image-upload-area {
-            border: 2px dashed #555;
-            border-radius: 8px;
-            padding: 30px;
-            text-align: center;
-            background: #333;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .image-upload-area:hover {
-            border-color: #2196F3;
-            background: #3a3a3a;
-        }
-
-        .image-upload-area.dragover {
-            border-color: #4caf50;
-            background: #2d4a2d;
-        }
-
-        .image-preview {
-            max-width: 100%;
-            max-height: 400px;
-            margin: 15px auto;
-            display: none;
-            border-radius: 8px;
-            border: 1px solid #555;
-        }
-
-        .image-info {
-            background: #1a1a1a;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-            font-size: 12px;
-            display: none;
-        }
-
-        .area-config {
+        .motor-controls {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 15px 0;
+            gap: 20px;
+            margin: 20px 0;
         }
-
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-
-        .file-input-wrapper input[type=file] {
-            position: absolute;
-            left: -9999px;
-        }
-
-        .tab-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #444;
-            padding-bottom: 10px;
-        }
-
-        .tab-btn {
-            padding: 10px 20px;
+        
+        .motor-control {
+            text-align: center;
+            padding: 15px;
             background: #333;
-            border: none;
-            color: #ccc;
-            cursor: pointer;
-            border-radius: 5px 5px 0 0;
-            transition: all 0.3s;
-        }
-
-        .tab-btn.active {
-            background: #2196F3;
-            color: white;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -290,130 +167,61 @@
     <div class="container">
         <div class="header">
             <h1>🤖 LLM Rover Control</h1>
-            <p>AI-Powered Navigation with Image-Based Path Planning</p>
-        </div>
-
-        <div class="calibration-info">
-            <h4>⚙️ System Status</h4>
-            <p style="margin: 5px 0;">All movements: <strong>100% speed</strong> | Turn calibration: <strong>Active on Pi</strong></p>
-            <p style="margin: 5px 0; font-size: 12px; color: #aaa;">Image upload supports: JPG, JPEG, PNG | Area size: 2.5m × 2.5m (configurable)</p>
+            <p>Simple AI-Powered 2WD Rover Control</p>
         </div>
 
         <div class="card">
-            <div class="tab-buttons">
-                <button class="tab-btn active" onclick="switchTab('text')">💬 Text Commands</button>
-                <button class="tab-btn" onclick="switchTab('image')">🖼️ Image Navigation</button>
-                <button class="tab-btn" onclick="switchTab('manual')">⚙️ Manual Control</button>
-            </div>
-
-            <!-- Text Command Tab -->
-            <div id="text-tab" class="tab-content active">
-                <h3>🗣️ Natural Language Control</h3>
-                
-                <div class="form-group">
-                    <label>Tell your rover what to do:</label>
-                    <textarea id="user-prompt" placeholder="Examples (use 'and' or 'then', NOT commas):
+            <h3>🗣️ Natural Language Control</h3>
+            
+            <div class="form-group">
+                <label>Tell your rover what to do:</label>
+                <textarea id="user-prompt" placeholder="Examples:
+• Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds
 • Move forward for 2 seconds
-• Turn left
-• Move forward 2 seconds and turn right
-• Turn left then move backward for 5 seconds
-• Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds">Move forward for 2 seconds</textarea>
-                </div>
-
-                <div style="background: #3a3a3a; padding: 10px; border-radius: 5px; margin: 10px 0; font-size: 12px; border-left: 3px solid #ff9800;">
-                    <strong>⚠️ Important:</strong> Use "and" or "then" to connect commands, NOT commas (,)
-                    <br>✅ Good: "move forward and turn left"
-                    <br>❌ Bad: "move forward, turn left"
-                </div>
-
-                <div class="preset-commands">
-                    <div class="preset-btn" onclick="setPrompt('move forward for 2 seconds')">Forward 2s</div>
-                    <div class="preset-btn" onclick="setPrompt('move forward for 5 seconds')">Forward 5s</div>
-                    <div class="preset-btn" onclick="setPrompt('move backward for 2 seconds')">Backward 2s</div>
-                    <div class="preset-btn" onclick="setPrompt('turn left')">Turn Left</div>
-                    <div class="preset-btn" onclick="setPrompt('turn right')">Turn Right</div>
-                    <div class="preset-btn" onclick="setPrompt('stop all motors')">Stop</div>
-                    <div class="preset-btn" onclick="setPrompt('move forward 2 seconds and turn left and move forward 2 seconds')">Sequence</div>
-                    <div class="preset-btn" onclick="setPrompt('motor 1 forward for 3 seconds while motor 2 backward for 5 seconds')">Independent</div>
-                </div>
-
-                <button class="btn" id="send-command" onclick="sendTextCommand()" style="width: 100%;">
-                    🚀 Send Command
-                </button>
+• Turn left for 1 second
+• Stop all motors">Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds</textarea>
             </div>
 
-            <!-- Image Navigation Tab -->
-            <div id="image-tab" class="tab-content">
-                <h3>🖼️ Image-Based Navigation</h3>
-                
-                <div class="form-group">
-                    <label>Upload Area Map (JPG, JPEG, PNG):</label>
-                    <div class="image-upload-area" id="dropArea" onclick="document.getElementById('imageInput').click()">
-                        <p>📤 Click to upload or drag & drop image here</p>
-                        <p style="font-size: 12px; color: #888;">Supported: JPG, JPEG, PNG</p>
-                    </div>
-                    <input type="file" id="imageInput" accept="image/jpeg,image/jpg,image/png" style="display: none;" onchange="handleImageUpload(event)">
-                    
-                    <img id="imagePreview" class="image-preview" alt="Preview">
-                    
-                    <div id="imageInfo" class="image-info">
-                        <strong>Image loaded:</strong> <span id="imageName"></span><br>
-                        <strong>Size:</strong> <span id="imageSize"></span><br>
-                        <strong>Dimensions:</strong> <span id="imageDimensions"></span>
-                    </div>
-                </div>
-
-                <div class="area-config">
-                    <div class="form-group">
-                        <label>Area Width (meters):</label>
-                        <input type="number" id="areaWidth" value="2.5" step="0.5" min="1" max="10">
-                    </div>
-                    <div class="form-group">
-                        <label>Area Height (meters):</label>
-                        <input type="number" id="areaHeight" value="2.5" step="0.5" min="1" max="10">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Navigation Instructions (optional):</label>
-                    <textarea id="nav-instructions" placeholder="Examples:
-• Navigate to the red marker avoiding obstacles
-• Find the shortest path from start to goal
-• Move through the area avoiding the black obstacles
-• Navigate from bottom-left to top-right corner">Navigate through the area avoiding all obstacles shown in the image</textarea>
-                </div>
-
-                <button class="btn btn-success" id="send-image-command" onclick="sendImageCommand()" style="width: 100%;">
-                    🗺️ Analyze Image & Navigate
-                </button>
+            <div class="preset-commands">
+                <div class="preset-btn" onclick="setPrompt('move forward for 2 seconds')">Forward</div>
+                <div class="preset-btn" onclick="setPrompt('move backward for 2 seconds')">Backward</div>
+                <div class="preset-btn" onclick="setPrompt('turn left for 1 second')">Left</div>
+                <div class="preset-btn" onclick="setPrompt('turn right for 1 second')">Right</div>
+                <div class="preset-btn" onclick="setPrompt('stop all motors')">Stop</div>
+                <div class="preset-btn" onclick="setPrompt('motor 1 forward for 3 seconds while motor 2 backward for 5 seconds')">Independent Motors</div>
             </div>
 
-            <!-- Manual Control Tab -->
-            <div id="manual-tab" class="tab-content">
-                <h3>⚙️ Manual Controls <span class="info-badge">100% SPEED</span></h3>
-                
-                <div class="duration-control">
-                    <label style="margin: 0;">Forward/Backward Duration:</label>
-                    <input type="number" id="duration-input" value="2" min="0.5" max="10" step="0.5">
-                    <span>seconds</span>
-                </div>
-                
-                <div class="control-grid">
-                    <div></div>
-                    <button class="control-btn btn" onclick="quickCommand('forward')">↑</button>
-                    <div></div>
-                    <button class="control-btn btn" onclick="quickCommand('left')">←</button>
-                    <button class="control-btn btn btn-danger" onclick="quickCommand('stop')">⏹</button>
-                    <button class="control-btn btn" onclick="quickCommand('right')">→</button>
-                    <div></div>
-                    <button class="control-btn btn" onclick="quickCommand('backward')">↓</button>
-                    <div></div>
-                </div>
+            <button class="btn" id="send-command" onclick="sendCommand()" style="width: 100%;">
+                🚀 Send Command
+            </button>
+        </div>
 
-                <p style="text-align: center; color: #888; font-size: 12px; margin-top: 10px;">
-                    Left/Right use calibrated turn durations from Pi<br>
-                    Forward/Backward use duration above
-                </p>
+        <div class="card">
+            <h3>⚙️ Manual Controls</h3>
+            
+            <div class="control-grid">
+                <div></div>
+                <button class="control-btn btn" onclick="quickCommand('forward')">↑</button>
+                <div></div>
+                <button class="control-btn btn" onclick="quickCommand('left')">←</button>
+                <button class="control-btn btn btn-danger" onclick="quickCommand('stop')">⏹</button>
+                <button class="control-btn btn" onclick="quickCommand('right')">→</button>
+                <div></div>
+                <button class="control-btn btn" onclick="quickCommand('backward')">↓</button>
+                <div></div>
+            </div>
+
+            <div class="motor-controls">
+                <div class="motor-control">
+                    <h4>Motor 1 (Left)</h4>
+                    <button class="btn" onclick="motorCommand(1, 'forward')">Forward</button>
+                    <button class="btn" onclick="motorCommand(1, 'backward')">Backward</button>
+                </div>
+                <div class="motor-control">
+                    <h4>Motor 2 (Right)</h4>
+                    <button class="btn" onclick="motorCommand(2, 'forward')">Forward</button>
+                    <button class="btn" onclick="motorCommand(2, 'backward')">Backward</button>
+                </div>
             </div>
         </div>
 
@@ -427,139 +235,26 @@
 
         <div class="card">
             <h3>📊 Response Log</h3>
-            <div id="response" class="output">🚀 Rover Control System Ready (100% Speed Mode)
+            <div id="response" class="output">🚀 Rover Control System Ready...
 
-📝 Available Control Methods:
-1. Text Commands - Natural language rover control
-2. Image Navigation - Upload map for obstacle avoidance
-3. Manual Control - Direct button control
+📝 Command Examples:
+• "Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds"
+• "Move forward for 2 seconds"
+• "Turn left for 1 second"
+• "Stop all motors"
 
-⚠️ IMPORTANT - Command Format Rules:
-• Use "and" or "then" to connect commands (NOT commas)
-• ✅ Good: "move forward and turn left"
-• ❌ Bad: "move forward, turn left"
-• The system will auto-fix commas, but best to avoid them
-
-🎯 Text Command Examples:
-• "move forward for 2 seconds"
-• "turn left and move backward for 3 seconds"
-• "move forward 2 seconds and turn right and move forward 2 seconds"
-• "motor 1 forward for 3 seconds while motor 2 backward for 5 seconds"
-
-🖼️ Image Navigation Instructions:
-• Upload JPG/PNG image of your area (max 2.5m × 2.5m)
-• Dark areas = obstacles, Light areas = free space
-• Add optional navigation instructions
-• AI will generate navigation sequence
-
-Ready to send commands!
+The system now properly handles independent motor timing!
 </div>
             
             <div id="status" class="status" style="display: none;"></div>
             
-            <button class="btn btn-small" onclick="clearLog()">Clear Log</button>
-            <button class="btn btn-danger btn-small" onclick="emergencyStop()">🛑 Emergency Stop</button>
+            <button class="btn" onclick="clearLog()">Clear Log</button>
+            <button class="btn btn-danger" onclick="emergencyStop()">🛑 Emergency Stop</button>
         </div>
     </div>
 
     <script>
         let commandInProgress = false;
-        let uploadedImage = null;
-
-        // Tab switching
-        function switchTab(tabName) {
-            // Update buttons
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            // Update content
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(tabName + '-tab').classList.add('active');
-            
-            addLog(`Switched to ${tabName} mode`, 'info');
-        }
-
-        // Drag and drop handling
-        const dropArea = document.getElementById('dropArea');
-        
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropArea.addEventListener(eventName, () => {
-                dropArea.classList.add('dragover');
-            }, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, () => {
-                dropArea.classList.remove('dragover');
-            }, false);
-        });
-
-        dropArea.addEventListener('drop', handleDrop, false);
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            if (files.length > 0) {
-                handleImageUpload({ target: { files: files } });
-            }
-        }
-
-        // Image upload handling
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            
-            if (!file) return;
-            
-            // Validate file type
-            const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-            if (!validTypes.includes(file.type)) {
-                showStatus('Invalid file type. Please upload JPG, JPEG, or PNG', 'error');
-                addLog('❌ Invalid file type', 'error');
-                return;
-            }
-
-            // Validate file size (max 10MB)
-            if (file.size > 10 * 1024 * 1024) {
-                showStatus('File too large. Maximum size is 10MB', 'error');
-                addLog('❌ File too large', 'error');
-                return;
-            }
-
-            // Display preview
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const preview = document.getElementById('imagePreview');
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-                
-                uploadedImage = e.target.result;
-                
-                // Update image info
-                document.getElementById('imageName').textContent = file.name;
-                document.getElementById('imageSize').textContent = (file.size / 1024).toFixed(2) + ' KB';
-                
-                const img = new Image();
-                img.onload = function() {
-                    document.getElementById('imageDimensions').textContent = `${this.width} × ${this.height}px`;
-                };
-                img.src = e.target.result;
-                
-                document.getElementById('imageInfo').style.display = 'block';
-                
-                addLog(`✅ Image loaded: ${file.name}`, 'success');
-                showStatus('Image uploaded successfully!', 'success');
-            };
-            reader.readAsDataURL(file);
-        }
 
         function addLog(message, type = 'info') {
             const output = document.getElementById('response');
@@ -584,27 +279,29 @@ Ready to send commands!
         }
 
         function quickCommand(direction) {
-            const duration = parseFloat(document.getElementById('duration-input').value) || 2;
-            
             const commands = {
-                'forward': `move forward for ${duration} seconds`,
-                'backward': `move backward for ${duration} seconds`, 
-                'left': 'turn left',
-                'right': 'turn right',
+                'forward': 'move forward for 2 seconds',
+                'backward': 'move backward for 2 seconds', 
+                'left': 'turn left for 1 second',
+                'right': 'turn right for 1 second',
                 'stop': 'stop all motors'
             };
-            
             setPrompt(commands[direction]);
-            sendTextCommand();
+            sendCommand();
         }
 
-        async function sendTextCommand() {
+        function motorCommand(motorNum, direction) {
+            setPrompt(`motor ${motorNum} ${direction} for 2 seconds`);
+            sendCommand();
+        }
+
+        async function sendCommand() {
             if (commandInProgress) {
                 showStatus('Command in progress, please wait...', 'warning');
                 return;
             }
 
-            let userPrompt = document.getElementById('user-prompt').value.trim();
+            const userPrompt = document.getElementById('user-prompt').value.trim();
             const functionUrl = document.getElementById('function-url').value.trim();
             
             if (!userPrompt) {
@@ -617,15 +314,6 @@ Ready to send commands!
                 return;
             }
 
-            // Auto-fix commas: replace ", " with " and "
-            if (userPrompt.includes(',')) {
-                const originalPrompt = userPrompt;
-                userPrompt = userPrompt.replace(/,\s+/g, ' and ');
-                addLog(`⚠️ Auto-fixed commas in command`, 'warning');
-                addLog(`Original: "${originalPrompt}"`, 'info');
-                addLog(`Fixed: "${userPrompt}"`, 'info');
-            }
-
             commandInProgress = true;
             const sendButton = document.getElementById('send-command');
             sendButton.textContent = '🔄 Sending...';
@@ -634,42 +322,39 @@ Ready to send commands!
             addLog(`Command: "${userPrompt}"`, 'info');
             showStatus('Sending command to rover...', 'info');
 
-            const systemPrompt = `You are a 2WD rover motor controller. Convert natural language to JSON commands.
+            // Enhanced system prompt for better motor control
+            const systemPrompt = `You are a 2WD rover motor controller. Convert natural language to JSON commands with precise timing.
 
-IMPORTANT: All movements are at 100% speed. Turn durations are calibrated on the Pi.
+IMPORTANT RULES:
+1. For independent motor timing (e.g., "motor 1 for 3s while motor 2 for 5s"), create separate commands with different durations
+2. Motors are: motor1 (left), motor2 (right)
+3. Directions: "forward", "backward", "stop"
+4. Speed: 0-100 (default 70)
+5. Duration: in seconds (default 2)
 
-COMMAND FORMATS:
+MOVEMENT PATTERNS:
+- "move forward" = both motors forward same speed/time
+- "move backward" = both motors backward same speed/time  
+- "turn left" = motor1 backward, motor2 forward
+- "turn right" = motor1 forward, motor2 backward
+- "stop" = both motors stop
 
-1. ROVER MOVEMENT (forward/backward/left/right/stop):
-{"command": "rover", "movement": "forward", "duration": 2}
+OUTPUT FORMAT (JSON array):
+For same timing: [{"motor": "motor1", "direction": "forward", "speed": 70, "duration": 2}]
+For different timing: [{"motor": "motor1", "direction": "forward", "speed": 70, "duration": 3}, {"motor": "motor2", "direction": "backward", "speed": 70, "duration": 5}]
 
-For turns (uses Pi's calibrated duration):
-{"command": "rover", "movement": "left"}
+Examples:
+"motor 1 forward 3s while motor 2 backward 5s" → [{"motor": "motor1", "direction": "forward", "speed": 70, "duration": 3}, {"motor": "motor2", "direction": "backward", "speed": 70, "duration": 5}]
+"move forward 2 seconds" → [{"motor": "motor1", "direction": "forward", "speed": 70, "duration": 2}, {"motor": "motor2", "direction": "forward", "speed": 70, "duration": 2}]
 
-2. INDIVIDUAL MOTOR:
-{"command": "motor", "motor": 1, "direction": "forward", "duration": 3}
-
-3. INDEPENDENT TIMING (e.g., "motor 1 for 3s while motor 2 for 5s"):
-{"command": "sequence", "commands": [
-  {"command": "motor", "motor": 1, "direction": "forward", "duration": 3},
-  {"command": "motor", "motor": 2, "direction": "backward", "duration": 5}
-]}
-
-4. DUAL MOTOR (same duration):
-{"command": "dual_motor", "motor1": {"direction": "forward"}, "motor2": {"direction": "forward"}, "duration": 2}
-
-RULES:
-- Motors: 1 (left), 2 (right)
-- Directions: "forward", "backward", "stop"
-- Default duration: 2 seconds
-- Turns: omit duration (Pi uses calibrated values)
-
-Respond with valid JSON only.`;
+ALWAYS respond with valid JSON array only, no explanations.`;
 
             try {
                 const response = await fetch(functionUrl, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify({
                         "user_prompt": userPrompt,
                         "system_prompt": systemPrompt
@@ -684,25 +369,22 @@ Respond with valid JSON only.`;
                 addLog(`Response: ${data}`, 'success');
                 showStatus('Command sent successfully!', 'success');
 
+                // Try to parse and display the motor commands
                 try {
-                    const cmd = JSON.parse(data);
-                    if (cmd.command) {
-                        addLog(`Command type: ${cmd.command}`, 'info');
-                        if (cmd.command === 'sequence') {
-                            addLog(`Sequence with ${cmd.commands.length} steps`, 'info');
-                        }
+                    const commands = JSON.parse(data);
+                    if (Array.isArray(commands)) {
+                        addLog(`Parsed ${commands.length} motor command(s):`, 'info');
+                        commands.forEach((cmd, i) => {
+                            addLog(`  ${i+1}. ${cmd.motor} ${cmd.direction} ${cmd.speed}% for ${cmd.duration}s`, 'info');
+                        });
                     }
-                } catch (e) {}
+                } catch (e) {
+                    // Response is not JSON, that's okay
+                }
 
             } catch (error) {
                 addLog(`Error: ${error.message}`, 'error');
                 showStatus(`Error: ${error.message}`, 'error');
-                
-                // Provide helpful error messages
-                if (error.message.includes('400')) {
-                    addLog(`💡 Tip: Avoid using commas. Use "and" or "then" instead`, 'warning');
-                    addLog(`Example: "move forward and turn left" (not "forward, turn left")`, 'info');
-                }
             } finally {
                 commandInProgress = false;
                 sendButton.textContent = '🚀 Send Command';
@@ -710,131 +392,13 @@ Respond with valid JSON only.`;
             }
         }
 
-        async function sendImageCommand() {
-            if (commandInProgress) {
-                showStatus('Command in progress, please wait...', 'warning');
-                return;
-            }
-
-            if (!uploadedImage) {
-                showStatus('Please upload an image first', 'error');
-                addLog('❌ No image uploaded', 'error');
-                return;
-            }
-
-            const functionUrl = document.getElementById('function-url').value.trim();
-            const navInstructions = document.getElementById('nav-instructions').value.trim();
-            const areaWidth = parseFloat(document.getElementById('areaWidth').value) || 2.5;
-            const areaHeight = parseFloat(document.getElementById('areaHeight').value) || 2.5;
-
-            if (!functionUrl) {
-                showStatus('Please enter Azure Function URL', 'error');
-                return;
-            }
-
-            commandInProgress = true;
-            const sendButton = document.getElementById('send-image-command');
-            sendButton.textContent = '🔄 Analyzing...';
-            sendButton.disabled = true;
-
-            addLog(`Starting image-based navigation...`, 'info');
-            addLog(`Area: ${areaWidth}m × ${areaHeight}m`, 'info');
-            showStatus('Analyzing image for obstacles and path planning...', 'info');
-
-            const systemPrompt = `You are a rover navigation system with computer vision. Analyze the uploaded image and generate a navigation sequence.
-
-AREA SPECIFICATIONS:
-- Physical area: ${areaWidth}m × ${areaHeight}m
-- All movements at 100% speed
-- Turn durations calibrated on Pi
-
-IMAGE ANALYSIS INSTRUCTIONS:
-1. Identify obstacles (dark/black areas) and free space (light/white areas)
-2. Determine start position (typically bottom-center or marked)
-3. Plan optimal path avoiding obstacles
-4. Generate movement sequence: forward, turn left, turn right, backward
-
-NAVIGATION CONTEXT:
-${navInstructions || "Navigate through the area avoiding all obstacles"}
-
-OUTPUT FORMAT:
-Generate a sequence of rover commands as JSON:
-{
-  "command": "sequence",
-  "commands": [
-    {"command": "rover", "movement": "forward", "duration": 2},
-    {"command": "rover", "movement": "left"},
-    {"command": "rover", "movement": "forward", "duration": 3},
-    {"command": "rover", "movement": "right"},
-    {"command": "rover", "movement": "forward", "duration": 1.5}
-  ],
-  "path_description": "Brief description of the planned path"
-}
-
-MOVEMENT PATTERNS:
-- Forward/backward: include duration in seconds
-- Turns: omit duration (uses calibrated values from Pi)
-- Keep movements simple and sequential
-- Estimate durations based on area size (1 second ≈ 0.3-0.5 meters at 100% speed)
-
-Consider:
-- Rover dimensions (~20cm wide)
-- Safety margin around obstacles
-- Turning radius
-- Area boundaries
-
-Respond with valid JSON containing the navigation sequence.`;
-
-            try {
-                const response = await fetch(functionUrl, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        "user_prompt": `Analyze this map image and generate navigation commands. ${navInstructions}`,
-                        "system_prompt": systemPrompt,
-                        "image": uploadedImage,
-                        "area_width": areaWidth,
-                        "area_height": areaHeight
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.text();
-                addLog(`Navigation plan generated!`, 'success');
-                addLog(`Response: ${data}`, 'info');
-                
-                try {
-                    const navPlan = JSON.parse(data);
-                    if (navPlan.path_description) {
-                        addLog(`Path: ${navPlan.path_description}`, 'info');
-                    }
-                    if (navPlan.commands) {
-                        addLog(`Generated ${navPlan.commands.length} movement commands`, 'success');
-                    }
-                } catch (e) {}
-                
-                showStatus('Navigation sequence generated and sent to rover!', 'success');
-
-            } catch (error) {
-                addLog(`Error: ${error.message}`, 'error');
-                showStatus(`Error: ${error.message}`, 'error');
-            } finally {
-                commandInProgress = false;
-                sendButton.textContent = '🗺️ Analyze Image & Navigate';
-                sendButton.disabled = false;
-            }
-        }
-
         function emergencyStop() {
             setPrompt('stop all motors immediately');
-            sendTextCommand();
+            sendCommand();
         }
 
         function clearLog() {
-            document.getElementById('response').textContent = '🚀 Rover Control System Ready (100% Speed Mode)\n\nLog cleared.';
+            document.getElementById('response').textContent = '🚀 Rover Control System Ready...\n\nLog cleared.';
         }
 
         // Keyboard shortcuts
@@ -851,8 +415,7 @@ Respond with valid JSON containing the navigation sequence.`;
         });
 
         // Initialize
-        addLog('System initialized (100% speed mode)', 'info');
-        addLog('3 control modes available: Text, Image, Manual', 'info');
+        addLog('System initialized. Use Alt+W/A/S/D for movement, Alt+Space to stop', 'info');
     </script>
 </body>
 </html>
