@@ -302,7 +302,7 @@
         <div class="card">
             <div class="tab-buttons">
                 <button class="tab-btn active" onclick="switchTab('text')">💬 Text Commands</button>
-                <button class="tab-btn" onclick="switchTab('image')">🖼️ Image Navigation</button>
+                <button class="tab-btn" onclick="switchTab('image')" title="Requires Azure Function update">🖼️ Image Navigation (Beta)</button>
                 <button class="tab-btn" onclick="switchTab('manual')">⚙️ Manual Control</button>
             </div>
 
@@ -312,12 +312,18 @@
                 
                 <div class="form-group">
                     <label>Tell your rover what to do:</label>
-                    <textarea id="user-prompt" placeholder="Examples:
+                    <textarea id="user-prompt" placeholder="Examples (use 'and' or 'then', NOT commas):
 • Move forward for 2 seconds
 • Turn left
-• Turn right  
-• Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds
-• Stop all motors">Move forward for 2 seconds</textarea>
+• Move forward 2 seconds and turn right
+• Turn left then move backward for 5 seconds
+• Motor 1 forward for 3 seconds while motor 2 backward for 5 seconds">Move forward for 2 seconds</textarea>
+                </div>
+
+                <div style="background: #3a3a3a; padding: 10px; border-radius: 5px; margin: 10px 0; font-size: 12px; border-left: 3px solid #ff9800;">
+                    <strong>⚠️ Important:</strong> Use "and" or "then" to connect commands, NOT commas (,)
+                    <br>✅ Good: "move forward and turn left"
+                    <br>❌ Bad: "move forward, turn left"
                 </div>
 
                 <div class="preset-commands">
@@ -327,6 +333,7 @@
                     <div class="preset-btn" onclick="setPrompt('turn left')">Turn Left</div>
                     <div class="preset-btn" onclick="setPrompt('turn right')">Turn Right</div>
                     <div class="preset-btn" onclick="setPrompt('stop all motors')">Stop</div>
+                    <div class="preset-btn" onclick="setPrompt('move forward 2 seconds and turn left and move forward 2 seconds')">Sequence</div>
                     <div class="preset-btn" onclick="setPrompt('motor 1 forward for 3 seconds while motor 2 backward for 5 seconds')">Independent</div>
                 </div>
 
@@ -337,7 +344,45 @@
 
             <!-- Image Navigation Tab -->
             <div id="image-tab" class="tab-content">
-                <h3>🖼️ Image-Based Navigation</h3>
+                <h3>🖼️ Image-Based Navigation (Beta)</h3>
+                
+                <div style="background: #3a3a3a; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #ff9800;">
+                    <strong>⚠️ Azure Function Update Required</strong>
+                    <p style="margin: 10px 0 0 0; font-size: 13px;">
+                        This feature requires your Azure Function to support GPT-4o vision API. 
+                        Currently getting HTTP 500 error because the function expects text-only input.
+                    </p>
+                    <details style="margin-top: 10px; font-size: 12px;">
+                        <summary style="cursor: pointer; color: #2196F3;">Click to see required Azure Function changes</summary>
+                        <pre style="background: #1a1a1a; padding: 10px; border-radius: 5px; margin-top: 10px; overflow-x: auto; color: #00ff00;">
+# Add to your Azure Function:
+
+if 'image' in req_body:
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": user_prompt},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": req_body['image']}
+                }
+            ]
+        }
+    ]
+else:
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+    ]
+
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=messages
+)</pre>
+                    </details>
+                </div>
                 
                 <div class="form-group">
                     <label>Upload Area Map (JPG, JPEG, PNG):</label>
@@ -427,7 +472,19 @@
 2. Image Navigation - Upload map for obstacle avoidance
 3. Manual Control - Direct button control
 
-🎯 Image Navigation Instructions:
+⚠️ IMPORTANT - Command Format Rules:
+• Use "and" or "then" to connect commands (NOT commas)
+• ✅ Good: "move forward and turn left"
+• ❌ Bad: "move forward, turn left"
+• The system will auto-fix commas, but best to avoid them
+
+🎯 Text Command Examples:
+• "move forward for 2 seconds"
+• "turn left and move backward for 3 seconds"
+• "move forward 2 seconds and turn right and move forward 2 seconds"
+• "motor 1 forward for 3 seconds while motor 2 backward for 5 seconds"
+
+🖼️ Image Navigation Instructions:
 • Upload JPG/PNG image of your area (max 2.5m × 2.5m)
 • Dark areas = obstacles, Light areas = free space
 • Add optional navigation instructions
@@ -585,7 +642,7 @@ Ready to send commands!
                 return;
             }
 
-            const userPrompt = document.getElementById('user-prompt').value.trim();
+            let userPrompt = document.getElementById('user-prompt').value.trim();
             const functionUrl = document.getElementById('function-url').value.trim();
             
             if (!userPrompt) {
@@ -596,6 +653,15 @@ Ready to send commands!
             if (!functionUrl) {
                 showStatus('Please enter Azure Function URL', 'error');
                 return;
+            }
+
+            // Auto-fix commas: replace ", " with " and "
+            if (userPrompt.includes(',')) {
+                const originalPrompt = userPrompt;
+                userPrompt = userPrompt.replace(/,\s+/g, ' and ');
+                addLog(`⚠️ Auto-fixed commas in command`, 'warning');
+                addLog(`Original: "${originalPrompt}"`, 'info');
+                addLog(`Fixed: "${userPrompt}"`, 'info');
             }
 
             commandInProgress = true;
@@ -669,6 +735,12 @@ Respond with valid JSON only.`;
             } catch (error) {
                 addLog(`Error: ${error.message}`, 'error');
                 showStatus(`Error: ${error.message}`, 'error');
+                
+                // Provide helpful error messages
+                if (error.message.includes('400')) {
+                    addLog(`💡 Tip: Avoid using commas. Use "and" or "then" instead`, 'warning');
+                    addLog(`Example: "move forward and turn left" (not "forward, turn left")`, 'info');
+                }
             } finally {
                 commandInProgress = false;
                 sendButton.textContent = '🚀 Send Command';
@@ -689,7 +761,8 @@ Respond with valid JSON only.`;
             }
 
             const functionUrl = document.getElementById('function-url').value.trim();
-            const navInstructions = document.getElementById('nav-instructions').value.trim();
+            const navInstructions = document.getElementById('nav-instructions').value.trim() || 
+                                   "Navigate through the area avoiding all obstacles shown in the image";
             const areaWidth = parseFloat(document.getElementById('areaWidth').value) || 2.5;
             const areaHeight = parseFloat(document.getElementById('areaHeight').value) || 2.5;
 
@@ -705,26 +778,21 @@ Respond with valid JSON only.`;
 
             addLog(`Starting image-based navigation...`, 'info');
             addLog(`Area: ${areaWidth}m × ${areaHeight}m`, 'info');
-            showStatus('Analyzing image for obstacles and path planning...', 'info');
+            addLog(`Instructions: "${navInstructions}"`, 'info');
+            showStatus('Analyzing image for path planning...', 'info');
+
+            // Build comprehensive prompt including area info
+            const userPrompt = `${navInstructions}\n\nArea specifications:\n- Size: ${areaWidth}m × ${areaHeight}m\n- Rover speed: 100% (approximately 0.3-0.5 meters per second)\n- All turns use calibrated durations from the Raspberry Pi\n\nAnalyze the image and generate a safe navigation path as a sequence of rover commands.`;
 
             const systemPrompt = `You are a rover navigation system with computer vision. Analyze the uploaded image and generate a navigation sequence.
-
-AREA SPECIFICATIONS:
-- Physical area: ${areaWidth}m × ${areaHeight}m
-- All movements at 100% speed
-- Turn durations calibrated on Pi
 
 IMAGE ANALYSIS INSTRUCTIONS:
 1. Identify obstacles (dark/black areas) and free space (light/white areas)
 2. Determine start position (typically bottom-center or marked)
-3. Plan optimal path avoiding obstacles
-4. Generate movement sequence: forward, turn left, turn right, backward
-
-NAVIGATION CONTEXT:
-${navInstructions || "Navigate through the area avoiding all obstacles"}
+3. Plan optimal path avoiding obstacles with safety margin
+4. Generate movement sequence using rover commands
 
 OUTPUT FORMAT:
-Generate a sequence of rover commands as JSON:
 {
   "command": "sequence",
   "commands": [
@@ -733,34 +801,28 @@ Generate a sequence of rover commands as JSON:
     {"command": "rover", "movement": "forward", "duration": 3},
     {"command": "rover", "movement": "right"},
     {"command": "rover", "movement": "forward", "duration": 1.5}
-  ],
-  "path_description": "Brief description of the planned path"
+  ]
 }
 
-MOVEMENT PATTERNS:
+RULES:
+- All movements at 100% speed
 - Forward/backward: include duration in seconds
-- Turns: omit duration (uses calibrated values from Pi)
-- Keep movements simple and sequential
-- Estimate durations based on area size (1 second ≈ 0.3-0.5 meters at 100% speed)
+- Turns (left/right): omit duration (Pi uses calibrated values)
+- Consider rover size (~20cm wide)
+- Add safety margin around obstacles
+- Keep path simple and sequential
+- Estimate: 1 second forward ≈ 0.3-0.5 meters
 
-Consider:
-- Rover dimensions (~20cm wide)
-- Safety margin around obstacles
-- Turning radius
-- Area boundaries
-
-Respond with valid JSON containing the navigation sequence.`;
+Respond with valid JSON containing the navigation sequence only.`;
 
             try {
                 const response = await fetch(functionUrl, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        "user_prompt": `Analyze this map image and generate navigation commands. ${navInstructions}`,
+                        "user_prompt": userPrompt,
                         "system_prompt": systemPrompt,
-                        "image": uploadedImage,
-                        "area_width": areaWidth,
-                        "area_height": areaHeight
+                        "image": uploadedImage
                     })
                 });
 
@@ -768,21 +830,31 @@ Respond with valid JSON containing the navigation sequence.`;
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
-                const data = await response.text();
-                addLog(`Navigation plan generated!`, 'success');
-                addLog(`Response: ${data}`, 'info');
+                const data = await response.json();
                 
-                try {
-                    const navPlan = JSON.parse(data);
-                    if (navPlan.path_description) {
-                        addLog(`Path: ${navPlan.path_description}`, 'info');
-                    }
+                if (data.status === 'success') {
+                    addLog(`✅ Navigation plan generated!`, 'success');
+                    addLog(`Generated JSON:`, 'info');
+                    addLog(JSON.stringify(data.generated_json, null, 2), 'info');
+                    
+                    const navPlan = data.generated_json;
                     if (navPlan.commands) {
-                        addLog(`Generated ${navPlan.commands.length} movement commands`, 'success');
+                        addLog(`📋 Sequence with ${navPlan.commands.length} movement commands`, 'success');
+                        navPlan.commands.forEach((cmd, i) => {
+                            const movement = cmd.movement || 'motor';
+                            const duration = cmd.duration ? ` (${cmd.duration}s)` : ' (calibrated)';
+                            addLog(`  ${i+1}. ${movement}${duration}`, 'info');
+                        });
                     }
-                } catch (e) {}
-                
-                showStatus('Navigation sequence generated and sent to rover!', 'success');
+                    
+                    showStatus('Navigation sequence sent to rover!', 'success');
+                } else {
+                    addLog(`❌ Error: ${data.error}`, 'error');
+                    if (data.ai_response) {
+                        addLog(`AI Response: ${data.ai_response}`, 'warning');
+                    }
+                    showStatus(`Error: ${data.error}`, 'error');
+                }
 
             } catch (error) {
                 addLog(`Error: ${error.message}`, 'error');
