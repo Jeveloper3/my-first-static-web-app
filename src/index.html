@@ -14,7 +14,7 @@
         }
         
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
         }
         
@@ -114,6 +114,24 @@
         .btn-success:hover {
             background: #388e3c;
         }
+
+        .btn-voice {
+            background: #9c27b0;
+        }
+
+        .btn-voice:hover {
+            background: #7b1fa2;
+        }
+
+        .btn-voice.recording {
+            background: #f44336;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
         
         .control-grid {
             display: grid;
@@ -130,6 +148,67 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .directional-control {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 30px auto;
+            background: radial-gradient(circle, #333 60%, #1a1a1a 100%);
+            border-radius: 50%;
+            border: 2px solid #555;
+        }
+
+        .direction-btn {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #2196F3;
+            color: white;
+            border: 2px solid #1976D2;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .direction-btn:hover {
+            background: #1976D2;
+            transform: scale(1.1);
+        }
+
+        .direction-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Position buttons in circle */
+        .dir-0 { top: 0; left: 50%; transform: translateX(-50%); }
+        .dir-45 { top: 15%; right: 15%; }
+        .dir-90 { top: 50%; right: 0; transform: translateY(-50%); }
+        .dir-135 { bottom: 15%; right: 15%; }
+        .dir-180 { bottom: 0; left: 50%; transform: translateX(-50%); }
+        .dir-225 { bottom: 15%; left: 15%; }
+        .dir-270 { top: 50%; left: 0; transform: translateY(-50%); }
+        .dir-315 { top: 15%; left: 15%; }
+
+        .center-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: #f44336;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
         }
         
         .output {
@@ -236,22 +315,45 @@
             display: none;
         }
 
+        .analyzed-image {
+            position: relative;
+            display: none;
+            margin: 15px 0;
+        }
+
+        .analyzed-image canvas {
+            max-width: 100%;
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+        }
+
+        .analysis-legend {
+            background: #2a2a2a;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 10px;
+            border: 1px solid #555;
+        }
+
         .area-config {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
             margin: 15px 0;
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-
-        .file-input-wrapper input[type=file] {
-            position: absolute;
-            left: -9999px;
         }
 
         .tab-buttons {
@@ -260,6 +362,7 @@
             margin-bottom: 15px;
             border-bottom: 2px solid #444;
             padding-bottom: 10px;
+            flex-wrap: wrap;
         }
 
         .tab-btn {
@@ -284,26 +387,35 @@
         .tab-content.active {
             display: block;
         }
+
+        .voice-controls {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🤖 LLM Rover Control</h1>
-            <p>AI-Powered Navigation with Image-Based Path Planning</p>
+            <p>AI-Powered Navigation with Voice, Image & Directional Control</p>
         </div>
 
         <div class="calibration-info">
             <h4>⚙️ System Status</h4>
             <p style="margin: 5px 0;">All movements: <strong>100% speed</strong> | Turn calibration: <strong>Active on Pi</strong></p>
-            <p style="margin: 5px 0; font-size: 12px; color: #aaa;">Image upload supports: JPG, JPEG, PNG | Area size: 2.5m × 2.5m (configurable)</p>
+            <p style="margin: 5px 0; font-size: 12px; color: #aaa;">Voice commands, 8-direction control, and image analysis available</p>
         </div>
 
         <div class="card">
             <div class="tab-buttons">
-                <button class="tab-btn active" onclick="switchTab('text')">💬 Text Commands</button>
-                <button class="tab-btn" onclick="switchTab('image')" title="Requires Azure Function update">🖼️ Image Navigation (Beta)</button>
-                <button class="tab-btn" onclick="switchTab('manual')">⚙️ Manual Control</button>
+                <button class="tab-btn active" onclick="switchTab('text')">💬 Text</button>
+                <button class="tab-btn" onclick="switchTab('voice')">🎤 Voice</button>
+                <button class="tab-btn" onclick="switchTab('image')">🖼️ Image</button>
+                <button class="tab-btn" onclick="switchTab('directional')">🧭 Directional</button>
+                <button class="tab-btn" onclick="switchTab('manual')">⚙️ Manual</button>
             </div>
 
             <!-- Text Command Tab -->
@@ -311,33 +423,18 @@
                 <h3>🗣️ Natural Language Control</h3>
                 
                 <div class="form-group">
-                    <label>Tell your rover what to do (Natural Language):</label>
-                    <textarea id="user-prompt" placeholder="Use natural language - commas, periods, any style:
+                    <label>Tell your rover what to do:</label>
+                    <textarea id="user-prompt" placeholder="Examples:
 • Move forward for 2 seconds
-• Forward 1 sec, turn left, forward 1.5 sec, backward 1 sec
-• Go forward. Turn right. Move backward. Turn left.
-• Move forward 2 seconds and turn left and forward 3 seconds
-• Motor 1 forward 3 seconds while motor 2 backward 5 seconds
-
-You can chain up to 20 actions in one command!">Move forward for 2 seconds</textarea>
-                </div>
-
-                <div style="background: #2d4a2d; padding: 10px; border-radius: 5px; margin: 10px 0; font-size: 12px; border-left: 3px solid #4caf50;">
-                    <strong>✅ Natural Language Support:</strong><br>
-                    • Use commas, periods, "and", "then" - any style you like!<br>
-                    • Up to 20 movement commands per instruction<br>
-                    • Example: "forward 1s, left, forward 2s" ← This works now!
+• Forward 1 sec, turn left, forward 1.5 sec
+• Go to 45 degrees for 3 seconds">Move forward for 2 seconds</textarea>
                 </div>
 
                 <div class="preset-commands">
                     <div class="preset-btn" onclick="setPrompt('move forward for 2 seconds')">Forward 2s</div>
-                    <div class="preset-btn" onclick="setPrompt('move forward for 5 seconds')">Forward 5s</div>
-                    <div class="preset-btn" onclick="setPrompt('move backward for 2 seconds')">Backward 2s</div>
                     <div class="preset-btn" onclick="setPrompt('turn left')">Turn Left</div>
                     <div class="preset-btn" onclick="setPrompt('turn right')">Turn Right</div>
-                    <div class="preset-btn" onclick="setPrompt('stop all motors')">Stop</div>
-                    <div class="preset-btn" onclick="setPrompt('forward 1s, left, forward 2s, right, backward 1s')">Complex Path</div>
-                    <div class="preset-btn" onclick="setPrompt('motor 1 forward for 3 seconds while motor 2 backward for 5 seconds')">Independent</div>
+                    <div class="preset-btn" onclick="setPrompt('move backward for 2 seconds')">Backward 2s</div>
                 </div>
 
                 <button class="btn" id="send-command" onclick="sendTextCommand()" style="width: 100%;">
@@ -345,47 +442,41 @@ You can chain up to 20 actions in one command!">Move forward for 2 seconds</text
                 </button>
             </div>
 
+            <!-- Voice Command Tab -->
+            <div id="voice-tab" class="tab-content">
+                <h3>🎤 Voice Navigation</h3>
+                
+                <div style="background: #2d4a2d; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 3px solid #4caf50;">
+                    <strong>✅ Voice Commands Supported:</strong><br>
+                    • "Move forward for 2 seconds"<br>
+                    • "Turn left"<br>
+                    • "Go to 45 degrees"<br>
+                    • "Stop"<br>
+                    • Any natural language navigation command
+                </div>
+
+                <div class="voice-controls">
+                    <button class="btn btn-voice" id="voice-btn" onclick="toggleVoiceRecording()" style="flex: 1;">
+                        🎤 Hold to Speak
+                    </button>
+                    <button class="btn" onclick="testSpeechRecognition()" style="flex: 0;">
+                        🔧 Test Mic
+                    </button>
+                </div>
+
+                <div id="voice-status" style="background: #333; padding: 15px; border-radius: 8px; margin: 15px 0; min-height: 60px;">
+                    <strong>Status:</strong> <span id="voice-status-text">Ready to listen...</span><br>
+                    <strong>Recognized:</strong> <span id="voice-transcript" style="color: #4caf50;">None</span>
+                </div>
+
+                <div style="font-size: 12px; color: #888; margin-top: 10px;">
+                    💡 Tip: Speak clearly and wait for the beep. Works best in Chrome browser.
+                </div>
+            </div>
+
             <!-- Image Navigation Tab -->
             <div id="image-tab" class="tab-content">
-                <h3>🖼️ Image-Based Navigation (Beta)</h3>
-                
-                <div style="background: #3a3a3a; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #ff9800;">
-                    <strong>⚠️ Azure Function Update Required</strong>
-                    <p style="margin: 10px 0 0 0; font-size: 13px;">
-                        This feature requires your Azure Function to support GPT-4o vision API. 
-                        Currently getting HTTP 500 error because the function expects text-only input.
-                    </p>
-                    <details style="margin-top: 10px; font-size: 12px;">
-                        <summary style="cursor: pointer; color: #2196F3;">Click to see required Azure Function changes</summary>
-                        <pre style="background: #1a1a1a; padding: 10px; border-radius: 5px; margin-top: 10px; overflow-x: auto; color: #00ff00;">
-# Add to your Azure Function:
-
-if 'image' in req_body:
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": user_prompt},
-                {
-                    "type": "image_url",
-                    "image_url": {"url": req_body['image']}
-                }
-            ]
-        }
-    ]
-else:
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt}
-    ]
-
-response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=messages
-)</pre>
-                    </details>
-                </div>
+                <h3>🖼️ Image-Based Navigation</h3>
                 
                 <div class="form-group">
                     <label>Upload Area Map (JPG, JPEG, PNG):</label>
@@ -402,6 +493,25 @@ response = client.chat.completions.create(
                         <strong>Size:</strong> <span id="imageSize"></span><br>
                         <strong>Dimensions:</strong> <span id="imageDimensions"></span>
                     </div>
+
+                    <!-- Analysis visualization -->
+                    <div id="analyzedImage" class="analyzed-image">
+                        <canvas id="analysisCanvas"></canvas>
+                        <div class="analysis-legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #00ff00;"></div>
+                                <span>🤖 Rover Position</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #ff0000;"></div>
+                                <span>🎯 Goal/Target</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: rgba(255, 165, 0, 0.3);"></div>
+                                <span>⚠️ Obstacles Detected</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="area-config">
@@ -416,22 +526,66 @@ response = client.chat.completions.create(
                 </div>
 
                 <div class="form-group">
-                    <label>Navigation Instructions (optional):</label>
-                    <textarea id="nav-instructions" placeholder="Examples:
-• Navigate to the red marker avoiding obstacles
-• Find the shortest path from start to goal
-• Move through the area avoiding the black obstacles
-• Navigate from bottom-left to top-right corner">Navigate through the area avoiding all obstacles shown in the image</textarea>
+                    <label>Navigation Instructions:</label>
+                    <textarea id="nav-instructions" placeholder="Navigate to the red marker avoiding obstacles">Navigate from rover position to goal avoiding all obstacles</textarea>
                 </div>
 
-                <button class="btn btn-success" id="send-image-command" onclick="sendImageCommand()" style="width: 100%;">
-                    🗺️ Analyze Image & Navigate
+                <button class="btn btn-success" id="analyze-image-btn" onclick="analyzeImage()" style="width: 100%; margin-bottom: 10px;">
+                    🔍 Step 1: Analyze Image
                 </button>
+
+                <button class="btn" id="send-image-command" onclick="sendImageCommand()" style="width: 100%;" disabled>
+                    🗺️ Step 2: Execute Navigation
+                </button>
+            </div>
+
+            <!-- Directional Control Tab -->
+            <div id="directional-tab" class="tab-content">
+                <h3>🧭 8-Direction Control</h3>
+                
+                <div class="duration-control">
+                    <label style="margin: 0;">Movement Duration:</label>
+                    <input type="number" id="direction-duration" value="2" min="0.5" max="10" step="0.5">
+                    <span>seconds</span>
+                </div>
+
+                <div class="directional-control">
+                    <button class="direction-btn dir-0" onclick="moveDirection(0)" title="0° - North">
+                        0°<br>↑
+                    </button>
+                    <button class="direction-btn dir-45" onclick="moveDirection(45)" title="45° - Northeast">
+                        45°<br>↗
+                    </button>
+                    <button class="direction-btn dir-90" onclick="moveDirection(90)" title="90° - East">
+                        90°<br>→
+                    </button>
+                    <button class="direction-btn dir-135" onclick="moveDirection(135)" title="135° - Southeast">
+                        135°<br>↘
+                    </button>
+                    <button class="direction-btn dir-180" onclick="moveDirection(180)" title="180° - South">
+                        180°<br>↓
+                    </button>
+                    <button class="direction-btn dir-225" onclick="moveDirection(225)" title="225° - Southwest">
+                        225°<br>↙
+                    </button>
+                    <button class="direction-btn dir-270" onclick="moveDirection(270)" title="270° - West">
+                        270°<br>←
+                    </button>
+                    <button class="direction-btn dir-315" onclick="moveDirection(315)" title="315° - Northwest">
+                        315°<br>↖
+                    </button>
+                    <div class="center-indicator">🤖</div>
+                </div>
+
+                <p style="text-align: center; color: #888; font-size: 12px; margin-top: 10px;">
+                    Click a direction to move the rover at that angle<br>
+                    0° = Forward, 180° = Backward, 90° = Right, 270° = Left
+                </p>
             </div>
 
             <!-- Manual Control Tab -->
             <div id="manual-tab" class="tab-content">
-                <h3>⚙️ Manual Controls <span class="info-badge">100% SPEED</span></h3>
+                <h3>⚙️ Manual Controls</h3>
                 
                 <div class="duration-control">
                     <label style="margin: 0;">Forward/Backward Duration:</label>
@@ -450,11 +604,6 @@ response = client.chat.completions.create(
                     <button class="control-btn btn" onclick="quickCommand('backward')">↓</button>
                     <div></div>
                 </div>
-
-                <p style="text-align: center; color: #888; font-size: 12px; margin-top: 10px;">
-                    Left/Right use calibrated turn durations from Pi<br>
-                    Forward/Backward use duration above
-                </p>
             </div>
         </div>
 
@@ -468,28 +617,14 @@ response = client.chat.completions.create(
 
         <div class="card">
             <h3>📊 Response Log</h3>
-            <div id="response" class="output">🚀 Rover Control System Ready (100% Speed Mode)
+            <div id="response" class="output">🚀 Rover Control System Ready
 
-📝 Natural Language Control:
-• Use ANY natural language style - commas, periods, "and", "then", etc.
-• Chain up to 20 movement commands in one instruction
-• The AI will intelligently parse your commands
-
-✅ All These Work Now:
-• "Move forward 1s, turn left, forward 1.5s, backward 1s"
-• "Go forward. Turn right. Move backward. Stop."
-• "forward 2 seconds and turn left and forward 3 seconds"
-• "Move forward, left, forward, right, backward"
-
-🎯 Movement Types:
-• forward/backward (with duration in seconds)
-• left/right turns (use calibrated durations)
-• stop
-
-🖼️ Image Navigation:
-• Upload JPG/PNG map of your area
-• AI analyzes obstacles and plans path
-• Generates sequence of up to 20 movements
+Available Control Modes:
+• 💬 Text: Natural language commands
+• 🎤 Voice: Speak your commands
+• 🖼️ Image: Upload map for navigation
+• 🧭 Directional: 8-direction control (0°-315°)
+• ⚙️ Manual: Arrow key controls
 
 Ready to send commands!
 </div>
@@ -504,14 +639,111 @@ Ready to send commands!
     <script>
         let commandInProgress = false;
         let uploadedImage = null;
+        let imageAnalyzed = false;
+        let recognition = null;
+        let isRecording = false;
+
+        // Initialize Speech Recognition
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = function() {
+                    document.getElementById('voice-status-text').textContent = '🎤 Listening...';
+                    document.getElementById('voice-btn').classList.add('recording');
+                };
+
+                recognition.onresult = function(event) {
+                    let transcript = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        transcript += event.results[i][0].transcript;
+                    }
+                    document.getElementById('voice-transcript').textContent = transcript;
+                };
+
+                recognition.onend = function() {
+                    isRecording = false;
+                    document.getElementById('voice-status-text').textContent = 'Processing command...';
+                    document.getElementById('voice-btn').classList.remove('recording');
+                    
+                    const transcript = document.getElementById('voice-transcript').textContent;
+                    if (transcript && transcript !== 'None') {
+                        setPrompt(transcript);
+                        sendTextCommand();
+                        document.getElementById('voice-status-text').textContent = 'Command sent!';
+                    } else {
+                        document.getElementById('voice-status-text').textContent = 'No speech detected. Try again.';
+                    }
+                };
+
+                recognition.onerror = function(event) {
+                    document.getElementById('voice-status-text').textContent = `Error: ${event.error}`;
+                    document.getElementById('voice-btn').classList.remove('recording');
+                    isRecording = false;
+                };
+            } else {
+                addLog('❌ Speech recognition not supported in this browser', 'error');
+                showStatus('Speech recognition not supported. Use Chrome.', 'error');
+            }
+        }
+
+        function toggleVoiceRecording() {
+            if (!recognition) {
+                initSpeechRecognition();
+            }
+
+            if (isRecording) {
+                recognition.stop();
+                isRecording = false;
+            } else {
+                document.getElementById('voice-transcript').textContent = 'None';
+                recognition.start();
+                isRecording = true;
+            }
+        }
+
+        function testSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                showStatus('✅ Speech recognition available!', 'success');
+                addLog('✅ Microphone access granted', 'success');
+            } else {
+                showStatus('❌ Not supported. Use Chrome browser.', 'error');
+                addLog('❌ Speech recognition not available', 'error');
+            }
+        }
+
+        // Direction control
+        function moveDirection(degrees) {
+            const duration = parseFloat(document.getElementById('direction-duration').value) || 2;
+            
+            // Map degrees to movement commands
+            const directionMap = {
+                0: `move forward for ${duration} seconds`,
+                45: `move forward for ${duration/2} seconds, turn right, move forward for ${duration/2} seconds`,
+                90: `turn right`,
+                135: `turn right, move backward for ${duration/2} seconds, turn right, move forward for ${duration/2} seconds`,
+                180: `move backward for ${duration} seconds`,
+                225: `turn left, move backward for ${duration/2} seconds, turn left, move forward for ${duration/2} seconds`,
+                270: `turn left`,
+                315: `move forward for ${duration/2} seconds, turn left, move forward for ${duration/2} seconds`
+            };
+
+            const command = directionMap[degrees];
+            if (command) {
+                setPrompt(command);
+                addLog(`🧭 Direction ${degrees}° selected`, 'info');
+                sendTextCommand();
+            }
+        }
 
         // Tab switching
         function switchTab(tabName) {
-            // Update buttons
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             
-            // Update content
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             document.getElementById(tabName + '-tab').classList.add('active');
             
@@ -522,7 +754,7 @@ Ready to send commands!
         const dropArea = document.getElementById('dropArea');
         
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, preventDefaults, false);
+            dropArea?.addEventListener(eventName, preventDefaults, false);
         });
 
         function preventDefaults(e) {
@@ -531,18 +763,18 @@ Ready to send commands!
         }
 
         ['dragenter', 'dragover'].forEach(eventName => {
-            dropArea.addEventListener(eventName, () => {
+            dropArea?.addEventListener(eventName, () => {
                 dropArea.classList.add('dragover');
             }, false);
         });
 
         ['dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, () => {
+            dropArea?.addEventListener(eventName, () => {
                 dropArea.classList.remove('dragover');
             }, false);
         });
 
-        dropArea.addEventListener('drop', handleDrop, false);
+        dropArea?.addEventListener('drop', handleDrop, false);
 
         function handleDrop(e) {
             const dt = e.dataTransfer;
@@ -558,22 +790,17 @@ Ready to send commands!
             
             if (!file) return;
             
-            // Validate file type
             const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
             if (!validTypes.includes(file.type)) {
                 showStatus('Invalid file type. Please upload JPG, JPEG, or PNG', 'error');
-                addLog('❌ Invalid file type', 'error');
                 return;
             }
 
-            // Validate file size (max 10MB)
             if (file.size > 10 * 1024 * 1024) {
                 showStatus('File too large. Maximum size is 10MB', 'error');
-                addLog('❌ File too large', 'error');
                 return;
             }
 
-            // Display preview
             const reader = new FileReader();
             reader.onload = function(e) {
                 const preview = document.getElementById('imagePreview');
@@ -581,8 +808,8 @@ Ready to send commands!
                 preview.style.display = 'block';
                 
                 uploadedImage = e.target.result;
+                imageAnalyzed = false;
                 
-                // Update image info
                 document.getElementById('imageName').textContent = file.name;
                 document.getElementById('imageSize').textContent = (file.size / 1024).toFixed(2) + ' KB';
                 
@@ -593,11 +820,169 @@ Ready to send commands!
                 img.src = e.target.result;
                 
                 document.getElementById('imageInfo').style.display = 'block';
+                document.getElementById('analyzedImage').style.display = 'none';
+                document.getElementById('send-image-command').disabled = true;
                 
                 addLog(`✅ Image loaded: ${file.name}`, 'success');
-                showStatus('Image uploaded successfully!', 'success');
+                showStatus('Image uploaded! Click "Analyze Image" first.', 'success');
             };
             reader.readAsDataURL(file);
+        }
+
+        // Analyze image with GPT-4o Vision
+        async function analyzeImage() {
+            if (!uploadedImage) {
+                showStatus('Please upload an image first', 'error');
+                return;
+            }
+
+            const functionUrl = document.getElementById('function-url').value.trim();
+            const areaWidth = parseFloat(document.getElementById('areaWidth').value) || 2.5;
+            const areaHeight = parseFloat(document.getElementById('areaHeight').value) || 2.5;
+
+            const analyzeBtn = document.getElementById('analyze-image-btn');
+            analyzeBtn.textContent = '🔄 Analyzing...';
+            analyzeBtn.disabled = true;
+
+            addLog('🔍 Analyzing image for rover, obstacles, and goal...', 'info');
+            showStatus('Analyzing image...', 'info');
+
+            const analysisPrompt = `Analyze this navigation map image and identify:
+1. ROVER POSITION (usually green marker, "START", or bottom-center)
+2. GOAL/TARGET (usually red marker, "GOAL", or marked destination)
+3. OBSTACLES (dark/black areas, walls, barriers)
+
+Provide a JSON response with:
+{
+  "rover_found": true/false,
+  "rover_position": "description of location",
+  "goal_found": true/false,
+  "goal_position": "description of location",
+  "obstacles_detected": true/false,
+  "obstacle_count": number,
+  "obstacle_description": "description of obstacles",
+  "area_assessment": "overall analysis",
+  "navigation_feasible": true/false,
+  "recommended_approach": "suggested navigation strategy"
+}`;
+
+            try {
+                const response = await fetch(functionUrl, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        "user_prompt": analysisPrompt,
+                        "image": uploadedImage
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // Parse the analysis from GPT-4o
+                    const analysis = data.generated_json;
+                    
+                    addLog('✅ Image Analysis Complete:', 'success');
+                    addLog(`🤖 Rover: ${analysis.rover_found ? '✅ Found at ' + analysis.rover_position : '❌ Not found'}`, analysis.rover_found ? 'success' : 'error');
+                    addLog(`🎯 Goal: ${analysis.goal_found ? '✅ Found at ' + analysis.goal_position : '❌ Not found'}`, analysis.goal_found ? 'success' : 'error');
+                    addLog(`⚠️ Obstacles: ${analysis.obstacles_detected ? analysis.obstacle_count + ' detected - ' + analysis.obstacle_description : 'None detected'}`, 'warning');
+                    addLog(`📊 Assessment: ${analysis.area_assessment}`, 'info');
+                    addLog(`💡 Strategy: ${analysis.recommended_approach}`, 'info');
+
+                    if (analysis.navigation_feasible) {
+                        imageAnalyzed = true;
+                        document.getElementById('send-image-command').disabled = false;
+                        showStatus('✅ Analysis complete! Ready to navigate.', 'success');
+                    } else {
+                        showStatus('⚠️ Navigation may not be feasible. Check analysis.', 'warning');
+                    }
+
+                    // Visualize on canvas
+                    visualizeAnalysis();
+                } else {
+                    addLog(`❌ Analysis failed: ${data.error}`, 'error');
+                    showStatus('Analysis failed. See log for details.', 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Error: ${error.message}`, 'error');
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                analyzeBtn.textContent = '🔍 Step 1: Analyze Image';
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        function visualizeAnalysis() {
+            const canvas = document.getElementById('analysisCanvas');
+            const ctx = canvas.getContext('2d');
+            const img = document.getElementById('imagePreview');
+
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+
+            ctx.drawImage(img, 0, 0);
+            
+            document.getElementById('analyzedImage').style.display = 'block';
+            addLog('📊 Analysis visualization displayed', 'info');
+        }
+
+        async function sendImageCommand() {
+            if (!imageAnalyzed) {
+                showStatus('Please analyze the image first', 'warning');
+                return;
+            }
+
+            const functionUrl = document.getElementById('function-url').value.trim();
+            const navInstructions = document.getElementById('nav-instructions').value.trim();
+            const areaWidth = parseFloat(document.getElementById('areaWidth').value) || 2.5;
+            const areaHeight = parseFloat(document.getElementById('areaHeight').value) || 2.5;
+
+            const sendButton = document.getElementById('send-image-command');
+            sendButton.textContent = '🔄 Planning Route...';
+            sendButton.disabled = true;
+
+            const navigationPrompt = `${navInstructions}
+
+Area: ${areaWidth}m × ${areaHeight}m
+Speed: 100% (≈0.3-0.5 m/s)
+
+Generate a safe navigation sequence from rover to goal avoiding obstacles.`;
+
+            try {
+                const response = await fetch(functionUrl, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        "user_prompt": navigationPrompt,
+                        "image": uploadedImage
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    addLog('✅ Navigation plan generated!', 'success');
+                    const plan = data.generated_json;
+                    if (plan.commands) {
+                        addLog(`📋 ${plan.commands.length} movement steps planned`, 'success');
+                        plan.commands.forEach((cmd, i) => {
+                            const movement = cmd.movement || `motor ${cmd.motor}`;
+                            const duration = cmd.duration ? ` (${cmd.duration}s)` : '';
+                            addLog(`  ${i+1}. ${movement}${duration}`, 'info');
+                        });
+                    }
+                    showStatus('🚀 Navigation sequence sent to rover!', 'success');
+                } else {
+                    addLog(`❌ Error: ${data.error}`, 'error');
+                    showStatus(`Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Error: ${error.message}`, 'error');
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                sendButton.textContent = '🗺️ Step 2: Execute Navigation';
+                sendButton.disabled = false;
+            }
         }
 
         function addLog(message, type = 'info') {
@@ -650,18 +1035,8 @@ Ready to send commands!
                 showStatus('Please enter a command', 'error');
                 return;
             }
-            
-            if (!functionUrl) {
-                showStatus('Please enter Azure Function URL', 'error');
-                return;
-            }
 
-            // Preprocess command to help AI parse it better
-            // Don't auto-fix - just clean up whitespace
-            userPrompt = userPrompt.trim().replace(/\s+/g, ' ');
-            
-            // Log original command
-            addLog(`📝 Original: "${userPrompt}"`, 'info');
+            commandInProgress = true;
             const sendButton = document.getElementById('send-command');
             sendButton.textContent = '🔄 Sending...';
             sendButton.disabled = true;
@@ -669,275 +1044,12 @@ Ready to send commands!
             addLog(`Command: "${userPrompt}"`, 'info');
             showStatus('Sending command to rover...', 'info');
 
-            const systemPrompt = `You are an expert natural language processor for a 2WD rover. Parse ANY natural language command into a sequence of rover movements.
-
-CRITICAL RULES:
-1. Accept ALL natural language: commas, periods, semicolons, "and", "then", etc.
-2. Parse up to 20 movement commands per instruction
-3. All movements are at 100% speed (no speed parameter)
-4. Turn durations are calibrated on the Raspberry Pi (omit duration for turns)
-
-COMMAND STRUCTURE:
-Output a JSON sequence with individual movement commands:
-{
-  "command": "sequence",
-  "commands": [
-    {"command": "rover", "movement": "forward", "duration": 2},
-    {"command": "rover", "movement": "left"},
-    {"command": "rover", "movement": "forward", "duration": 1.5}
-  ]
-}
-
-MOVEMENT TYPES:
-- "forward" / "forwards" / "ahead" / "straight"
-- "backward" / "backwards" / "back" / "reverse"
-- "left" / "turn left" / "rotate left"
-- "right" / "turn right" / "rotate right"
-- "stop" / "halt" / "brake"
-
-DURATION PARSING:
-- "for X seconds" → duration: X
-- "X seconds" → duration: X
-- "for X" → duration: X
-- No duration specified for forward/backward → use 2 seconds default
-- Turns NEVER have duration (calibrated on Pi)
-
-NATURAL LANGUAGE PARSING EXAMPLES:
-
-Input: "Move forward for 1 second and turn left, forward for 1.5 seconds, backward for 1 second"
-Output: {
-  "command": "sequence",
-  "commands": [
-    {"command": "rover", "movement": "forward", "duration": 1},
-    {"command": "rover", "movement": "left"},
-    {"command": "rover", "movement": "forward", "duration": 1.5},
-    {"command": "rover", "movement": "backward", "duration": 1}
-  ]
-}
-
-Input: "Go forward 2 seconds. Turn right. Move backward 3 seconds. Turn left. Forward 1 second."
-Output: {
-  "command": "sequence",
-  "commands": [
-    {"command": "rover", "movement": "forward", "duration": 2},
-    {"command": "rover", "movement": "right"},
-    {"command": "rover", "movement": "backward", "duration": 3},
-    {"command": "rover", "movement": "left"},
-    {"command": "rover", "movement": "forward", "duration": 1}
-  ]
-}
-
-Input: "forward, left, forward, right, backward"
-Output: {
-  "command": "sequence",
-  "commands": [
-    {"command": "rover", "movement": "forward", "duration": 2},
-    {"command": "rover", "movement": "left"},
-    {"command": "rover", "movement": "forward", "duration": 2},
-    {"command": "rover", "movement": "right"},
-    {"command": "rover", "movement": "backward", "duration": 2}
-  ]
-}
-
-Input: "Move forward 1 second and turn left and forward 1.5 seconds"
-Output: {
-  "command": "sequence",
-  "commands": [
-    {"command": "rover", "movement": "forward", "duration": 1},
-    {"command": "rover", "movement": "left"},
-    {"command": "rover", "movement": "forward", "duration": 1.5}
-  ]
-}
-
-PARSING STRATEGY:
-1. Split command by: commas, periods, semicolons, "and", "then"
-2. For each segment, identify:
-   - Movement type (forward/backward/left/right/stop)
-   - Duration (if forward/backward and specified)
-3. Turns always omit duration
-4. Default to 2 seconds for forward/backward if not specified
-
-COMPLEX SEQUENCES:
-Handle up to 20 movements in one command. Break down long natural descriptions into step-by-step movements.
-
-INDEPENDENT MOTOR TIMING:
-For "motor 1 for Xs while motor 2 for Ys" use different format:
-{
-  "command": "sequence",
-  "commands": [
-    {"command": "motor", "motor": 1, "direction": "forward", "duration": X},
-    {"command": "motor", "motor": 2, "direction": "backward", "duration": Y}
-  ]
-}
-
-RESPONSE FORMAT:
-- Output ONLY valid JSON
-- No explanations, markdown, or code blocks
-- Use the exact structure shown above
-
-Remember: Be flexible with natural language. Users may use any punctuation or connector words. Extract the movement sequence intelligently.`;
-
             try {
                 const response = await fetch(functionUrl, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        "user_prompt": userPrompt,
-                        "system_prompt": systemPrompt
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.text();
-                addLog(`Response: ${data}`, 'success');
-                showStatus('Command sent successfully!', 'success');
-
-                try {
-                    const cmd = JSON.parse(data);
-                    if (cmd.command) {
-                        addLog(`✓ Command type: ${cmd.command}`, 'info');
-                        if (cmd.command === 'sequence' && cmd.commands) {
-                            addLog(`✓ Parsed ${cmd.commands.length} movement steps:`, 'success');
-                            cmd.commands.forEach((step, i) => {
-                                const movement = step.movement || `motor ${step.motor}`;
-                                const duration = step.duration ? ` (${step.duration}s)` : ' (calibrated)';
-                                addLog(`  ${i+1}. ${movement}${duration}`, 'info');
-                            });
-                        }
-                    }
-                } catch (e) {
-                    // Response not JSON, that's okay
-                }
-
-            } catch (error) {
-                addLog(`Error: ${error.message}`, 'error');
-                showStatus(`Error: ${error.message}`, 'error');
-                
-                if (error.message.includes('400')) {
-                    addLog(`💡 The AI couldn't parse your command. Try being more explicit:`, 'warning');
-                    addLog(`Example: "forward 1 second, turn left, forward 2 seconds"`, 'info');
-                }
-            } finally {
-                commandInProgress = false;
-                sendButton.textContent = '🚀 Send Command';
-                sendButton.disabled = false;
-            }
-        }
-
-        async function sendImageCommand() {
-            if (commandInProgress) {
-                showStatus('Command in progress, please wait...', 'warning');
-                return;
-            }
-
-            if (!uploadedImage) {
-                showStatus('Please upload an image first', 'error');
-                addLog('❌ No image uploaded', 'error');
-                return;
-            }
-
-            const functionUrl = document.getElementById('function-url').value.trim();
-            const navInstructions = document.getElementById('nav-instructions').value.trim() || 
-                                   "Navigate through the area avoiding all obstacles shown in the image";
-            const areaWidth = parseFloat(document.getElementById('areaWidth').value) || 2.5;
-            const areaHeight = parseFloat(document.getElementById('areaHeight').value) || 2.5;
-
-            if (!functionUrl) {
-                showStatus('Please enter Azure Function URL', 'error');
-                return;
-            }
-
-            commandInProgress = true;
-            const sendButton = document.getElementById('send-image-command');
-            sendButton.textContent = '🔄 Analyzing...';
-            sendButton.disabled = true;
-
-            addLog(`Starting image-based navigation...`, 'info');
-            addLog(`Area: ${areaWidth}m × ${areaHeight}m`, 'info');
-            addLog(`Instructions: "${navInstructions}"`, 'info');
-            showStatus('Analyzing image for path planning...', 'info');
-
-            // Build comprehensive prompt including area info
-            const userPrompt = `${navInstructions}\n\nArea specifications:\n- Size: ${areaWidth}m × ${areaHeight}m\n- Rover speed: 100% (approximately 0.3-0.5 meters per second)\n- All turns use calibrated durations from the Raspberry Pi\n\nAnalyze the image and generate a safe navigation path as a sequence of rover commands.`;
-
-            const systemPrompt = `You are an expert rover navigation system with computer vision. Analyze images and generate navigation sequences with up to 20 movement commands.
-
-IMAGE ANALYSIS:
-1. Identify obstacles (dark/black areas) and free space (light/white areas)
-2. Determine start position and goal (if marked)
-3. Plan optimal path avoiding obstacles with safety margin
-4. Generate detailed step-by-step movement sequence
-
-NAVIGATION OUTPUT:
-{
-  "command": "sequence",
-  "commands": [
-    {"command": "rover", "movement": "forward", "duration": 2},
-    {"command": "rover", "movement": "left"},
-    {"command": "rover", "movement": "forward", "duration": 3},
-    {"command": "rover", "movement": "right"},
-    {"command": "rover", "movement": "backward", "duration": 1}
-  ]
-}
-
-MOVEMENT RULES:
-- All movements at 100% speed
-- Forward/backward: include duration in seconds (estimate based on distance)
-- Turns (left/right): omit duration (Pi uses calibrated values ~0.35-0.50s for 90°)
-- Generate 5-20 movements for complex paths
-- Break long straight lines into shorter segments for better control
-
-DISTANCE ESTIMATION:
-- 1 second forward ≈ 0.3-0.5 meters at 100% speed
-- Rover width ≈ 0.2 meters (20cm)
-- Add 0.1m safety margin around obstacles
-- Consider turning radius when planning corners
-
-PATH PLANNING STRATEGY:
-1. Start from rover's current position
-2. Identify waypoints or goal markers
-3. Plan shortest safe path avoiding obstacles
-4. Break path into movement segments
-5. Generate sequence of: forward → turn → forward → turn → etc.
-
-COMPLEX PATHS:
-For intricate navigation through multiple obstacles:
-- Use 10-20 movement commands
-- Alternate forward movements with directional corrections
-- Keep forward durations between 0.5-5 seconds
-- Use turns to navigate around obstacles
-
-Example complex sequence:
-[
-  {"command": "rover", "movement": "forward", "duration": 1.5},
-  {"command": "rover", "movement": "right"},
-  {"command": "rover", "movement": "forward", "duration": 2},
-  {"command": "rover", "movement": "left"},
-  {"command": "rover", "movement": "forward", "duration": 1},
-  {"command": "rover", "movement": "left"},
-  {"command": "rover", "movement": "forward", "duration": 2.5},
-  {"command": "rover", "movement": "right"},
-  {"command": "rover", "movement": "forward", "duration": 1}
-]
-
-OUTPUT FORMAT:
-- Valid JSON only
-- No explanations or markdown
-- Use exact structure shown above
-
-Analyze the image and generate a safe, efficient navigation path.`;
-
-            try {
-                const response = await fetch(functionUrl, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        "user_prompt": userPrompt,
-                        "system_prompt": systemPrompt,
-                        "image": uploadedImage
+                        "user_prompt": userPrompt
                     })
                 });
 
@@ -948,26 +1060,10 @@ Analyze the image and generate a safe, efficient navigation path.`;
                 const data = await response.json();
                 
                 if (data.status === 'success') {
-                    addLog(`✅ Navigation plan generated!`, 'success');
-                    addLog(`Generated JSON:`, 'info');
-                    addLog(JSON.stringify(data.generated_json, null, 2), 'info');
-                    
-                    const navPlan = data.generated_json;
-                    if (navPlan.commands) {
-                        addLog(`📋 Sequence with ${navPlan.commands.length} movement commands`, 'success');
-                        navPlan.commands.forEach((cmd, i) => {
-                            const movement = cmd.movement || 'motor';
-                            const duration = cmd.duration ? ` (${cmd.duration}s)` : ' (calibrated)';
-                            addLog(`  ${i+1}. ${movement}${duration}`, 'info');
-                        });
-                    }
-                    
-                    showStatus('Navigation sequence sent to rover!', 'success');
+                    addLog(`✅ Command sent successfully!`, 'success');
+                    showStatus('Command sent to rover!', 'success');
                 } else {
                     addLog(`❌ Error: ${data.error}`, 'error');
-                    if (data.ai_response) {
-                        addLog(`AI Response: ${data.ai_response}`, 'warning');
-                    }
                     showStatus(`Error: ${data.error}`, 'error');
                 }
 
@@ -976,7 +1072,7 @@ Analyze the image and generate a safe, efficient navigation path.`;
                 showStatus(`Error: ${error.message}`, 'error');
             } finally {
                 commandInProgress = false;
-                sendButton.textContent = '🗺️ Analyze Image & Navigate';
+                sendButton.textContent = '🚀 Send Command';
                 sendButton.disabled = false;
             }
         }
@@ -987,7 +1083,7 @@ Analyze the image and generate a safe, efficient navigation path.`;
         }
 
         function clearLog() {
-            document.getElementById('response').textContent = '🚀 Rover Control System Ready (100% Speed Mode)\n\nLog cleared.';
+            document.getElementById('response').textContent = '🚀 Rover Control System Ready\n\nLog cleared.';
         }
 
         // Keyboard shortcuts
@@ -1004,8 +1100,8 @@ Analyze the image and generate a safe, efficient navigation path.`;
         });
 
         // Initialize
-        addLog('System initialized (100% speed mode)', 'info');
-        addLog('3 control modes available: Text, Image, Manual', 'info');
+        addLog('System initialized with 5 control modes', 'info');
+        addLog('Voice control requires Chrome browser', 'info');
     </script>
 </body>
 </html>
