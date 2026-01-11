@@ -847,24 +847,17 @@ Ready to send commands!
             addLog('🔍 Analyzing image for rover, obstacles, and goal...', 'info');
             showStatus('Analyzing image...', 'info');
 
-            const analysisPrompt = `Analyze this navigation map image and identify:
-1. ROVER POSITION (usually green marker, "START", or bottom-center)
-2. GOAL/TARGET (usually red marker, "GOAL", or marked destination)
-3. OBSTACLES (dark/black areas, walls, barriers)
+            const analysisPrompt = `Analyze this robot navigation image. 
+            
+The area is marked by black electrical tape: ${areaWidth}m wide × ${areaHeight}m long.
 
-Provide a JSON response with:
-{
-  "rover_found": true/false,
-  "rover_position": "description of location",
-  "goal_found": true/false,
-  "goal_position": "description of location",
-  "obstacles_detected": true/false,
-  "obstacle_count": number,
-  "obstacle_description": "description of obstacles",
-  "area_assessment": "overall analysis",
-  "navigation_feasible": true/false,
-  "recommended_approach": "suggested navigation strategy"
-}`;
+Identify and describe:
+1. The ROVER/ROBOT (small wheeled robot at bottom of image)
+2. The GOAL (green bottle at top of image)
+3. All OBSTACLES (red basket, egg cartons, boxes, any objects to avoid)
+4. Navigation boundaries (black tape lines)
+
+Be specific about positions using top/bottom/center and left/right.`;
 
             try {
                 const response = await fetch(functionUrl, {
@@ -872,20 +865,35 @@ Provide a JSON response with:
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         "user_prompt": analysisPrompt,
-                        "image": uploadedImage
+                        "image": uploadedImage,
+                        "analysis_only": true  // KEY: Tells Azure Function to return analysis, not commands
                     })
                 });
 
                 const data = await response.json();
                 
-                if (data.status === 'success') {
-                    // Parse the analysis from GPT-4o
-                    const analysis = data.generated_json;
+                if (data.status === 'success' && data.analysis) {
+                    const analysis = data.analysis;
                     
                     addLog('✅ Image Analysis Complete:', 'success');
-                    addLog(`🤖 Rover: ${analysis.rover_found ? '✅ Found at ' + analysis.rover_position : '❌ Not found'}`, analysis.rover_found ? 'success' : 'error');
-                    addLog(`🎯 Goal: ${analysis.goal_found ? '✅ Found at ' + analysis.goal_position : '❌ Not found'}`, analysis.goal_found ? 'success' : 'error');
-                    addLog(`⚠️ Obstacles: ${analysis.obstacles_detected ? analysis.obstacle_count + ' detected - ' + analysis.obstacle_description : 'None detected'}`, 'warning');
+                    addLog(`🤖 Rover: ${analysis.rover_found ? '✅ Found - ' + analysis.rover_position : '❌ Not detected'}`, analysis.rover_found ? 'success' : 'error');
+                    
+                    if (analysis.goal_found) {
+                        addLog(`🎯 Goal: ✅ Found - ${analysis.goal_description} at ${analysis.goal_position}`, 'success');
+                    } else {
+                        addLog(`🎯 Goal: ❌ Not detected`, 'error');
+                    }
+                    
+                    if (analysis.obstacles_detected && analysis.obstacle_list) {
+                        addLog(`⚠️ Obstacles: ${analysis.obstacle_count} detected:`, 'warning');
+                        analysis.obstacle_list.forEach((obs, i) => {
+                            addLog(`   ${i+1}. ${obs.type} at ${obs.position}`, 'warning');
+                        });
+                    } else {
+                        addLog(`⚠️ Obstacles: None detected`, 'info');
+                    }
+                    
+                    addLog(`📏 Boundary: ${analysis.boundary_detected ? '✅ ' + analysis.boundary_description : '❌ Not detected'}`, 'info');
                     addLog(`📊 Assessment: ${analysis.area_assessment}`, 'info');
                     addLog(`💡 Strategy: ${analysis.recommended_approach}`, 'info');
 
@@ -894,13 +902,13 @@ Provide a JSON response with:
                         document.getElementById('send-image-command').disabled = false;
                         showStatus('✅ Analysis complete! Ready to navigate.', 'success');
                     } else {
-                        showStatus('⚠️ Navigation may not be feasible. Check analysis.', 'warning');
+                        imageAnalyzed = false;
+                        showStatus('⚠️ Navigation not feasible with current setup.', 'warning');
                     }
 
-                    // Visualize on canvas
                     visualizeAnalysis();
                 } else {
-                    addLog(`❌ Analysis failed: ${data.error}`, 'error');
+                    addLog(`❌ Analysis failed: ${data.error || 'Unknown error'}`, 'error');
                     showStatus('Analysis failed. See log for details.', 'error');
                 }
             } catch (error) {
@@ -941,12 +949,22 @@ Provide a JSON response with:
             sendButton.textContent = '🔄 Planning Route...';
             sendButton.disabled = true;
 
-            const navigationPrompt = `${navInstructions}
+            const navigationPrompt = `Generate a navigation sequence for the rover based on the image.
 
-Area: ${areaWidth}m × ${areaHeight}m
-Speed: 100% (≈0.3-0.5 m/s)
+REQUIREMENTS:
+- Area: ${areaWidth}m × ${areaHeight}m (marked by black tape)
+- Speed: 100% (approximately 0.3-0.5 m/s)
+- Start: Rover position at bottom of frame
+- Goal: Green bottle at top of frame
+- Obstacles: Red basket, egg cartons, boxes (avoid these)
 
-Generate a safe navigation sequence from rover to goal avoiding obstacles.`;
+TASK: ${navInstructions}
+
+Generate a safe movement sequence from rover to goal. Use forward/backward movements with durations, and left/right turns (no duration needed for turns).
+
+Plan 5-12 movement steps to navigate around obstacles and reach the green bottle.`;
+
+            addLog('🗺️ Generating navigation plan...', 'info');
 
             try {
                 const response = await fetch(functionUrl, {
@@ -955,26 +973,32 @@ Generate a safe navigation sequence from rover to goal avoiding obstacles.`;
                     body: JSON.stringify({
                         "user_prompt": navigationPrompt,
                         "image": uploadedImage
+                        // NO analysis_only flag - this should return commands
                     })
                 });
 
                 const data = await response.json();
                 
-                if (data.status === 'success') {
+                if (data.status === 'success' && data.generated_json) {
                     addLog('✅ Navigation plan generated!', 'success');
                     const plan = data.generated_json;
-                    if (plan.commands) {
-                        addLog(`📋 ${plan.commands.length} movement steps planned`, 'success');
+                    
+                    if (plan.command === 'sequence' && plan.commands) {
+                        addLog(`📋 Generated ${plan.commands.length} movement steps:`, 'success');
                         plan.commands.forEach((cmd, i) => {
                             const movement = cmd.movement || `motor ${cmd.motor}`;
-                            const duration = cmd.duration ? ` (${cmd.duration}s)` : '';
-                            addLog(`  ${i+1}. ${movement}${duration}`, 'info');
+                            const duration = cmd.duration ? ` for ${cmd.duration}s` : ' (calibrated turn)';
+                            addLog(`  Step ${i+1}: ${movement}${duration}`, 'info');
                         });
+                        addLog(`📡 IoT Status: ${data.iot_status}`, 'success');
+                        showStatus('🚀 Navigation sequence sent to rover!', 'success');
+                    } else {
+                        addLog(`⚠️ Unexpected command structure: ${JSON.stringify(plan)}`, 'warning');
+                        showStatus('Command sent but format may be unexpected', 'warning');
                     }
-                    showStatus('🚀 Navigation sequence sent to rover!', 'success');
                 } else {
-                    addLog(`❌ Error: ${data.error}`, 'error');
-                    showStatus(`Error: ${data.error}`, 'error');
+                    addLog(`❌ Navigation failed: ${data.error || 'Unknown error'}`, 'error');
+                    showStatus(`Error: ${data.error || 'Navigation generation failed'}`, 'error');
                 }
             } catch (error) {
                 addLog(`❌ Error: ${error.message}`, 'error');
