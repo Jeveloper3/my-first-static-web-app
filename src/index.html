@@ -729,8 +729,8 @@ Ready to send commands!
             reader.readAsDataURL(file);
         }
 
-        // Draw bounding boxes on canvas
-        function drawBoundingBoxes(detections) {
+        // Draw bounding boxes on canvas using percentage coordinates
+        function drawBoundingBoxes(analysis) {
             if (!uploadedImageElement) return;
 
             const canvas = document.getElementById('analysisCanvas');
@@ -739,27 +739,80 @@ Ready to send commands!
             canvas.width = uploadedImageElement.naturalWidth;
             canvas.height = uploadedImageElement.naturalHeight;
 
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+
             // Draw original image
             ctx.drawImage(uploadedImageElement, 0, 0);
 
-            // Draw detections
-            if (detections && detections.length > 0) {
-                detections.forEach(det => {
-                    // Draw bounding box
-                    ctx.strokeStyle = det.type === 'rover' ? '#00ff00' : 
-                                     det.type === 'goal' ? '#ff0000' : '#ff9800';
-                    ctx.lineWidth = 3;
-                    ctx.strokeRect(det.bbox.x, det.bbox.y, det.bbox.width, det.bbox.height);
-
-                    // Draw label
-                    ctx.fillStyle = det.type === 'rover' ? '#00ff00' : 
-                                   det.type === 'goal' ? '#ff0000' : '#ff9800';
-                    ctx.font = 'bold 16px Arial';
-                    ctx.fillText(det.label, det.bbox.x, det.bbox.y - 5);
-                });
-
-                document.getElementById('analyzedImageContainer').style.display = 'block';
+            // Helper function to convert percentage to pixels
+            function percentToPixel(coord) {
+                return {
+                    x: (coord.x / 100) * imgWidth,
+                    y: (coord.y / 100) * imgHeight
+                };
             }
+
+            // Draw rover
+            if (analysis.rover_found && analysis.rover_coordinates) {
+                const pos = percentToPixel(analysis.rover_coordinates);
+                const size = 40; // approximate box size
+                
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(pos.x - size/2, pos.y - size/2, size, size);
+                
+                ctx.fillStyle = '#00ff00';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText('🤖 ROVER', pos.x - 30, pos.y - size/2 - 5);
+            }
+
+            // Draw goal
+            if (analysis.goal_found && analysis.goal_coordinates) {
+                const pos = percentToPixel(analysis.goal_coordinates);
+                const size = 50;
+                
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(pos.x - size/2, pos.y - size/2, size, size);
+                
+                ctx.fillStyle = '#ff0000';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText('🎯 GOAL', pos.x - 30, pos.y - size/2 - 5);
+            }
+
+            // Draw obstacles
+            if (analysis.obstacle_list) {
+                analysis.obstacle_list.forEach((obstacle, i) => {
+                    if (obstacle.coordinates) {
+                        const pos = percentToPixel(obstacle.coordinates);
+                        const size = 60;
+                        
+                        ctx.strokeStyle = '#ff9800';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(pos.x - size/2, pos.y - size/2, size, size);
+                        
+                        ctx.fillStyle = '#ff9800';
+                        ctx.font = 'bold 14px Arial';
+                        ctx.fillText(`⚠️ ${obstacle.type}`, pos.x - 40, pos.y - size/2 - 5);
+                    }
+                });
+            }
+
+            // Draw boundary if detected
+            if (analysis.boundary_detected && analysis.boundary_coordinates) {
+                const tl = percentToPixel(analysis.boundary_coordinates.top_left);
+                const br = percentToPixel(analysis.boundary_coordinates.bottom_right);
+                
+                ctx.strokeStyle = '#2196F3';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([10, 5]);
+                ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
+                ctx.setLineDash([]);
+            }
+
+            document.getElementById('analyzedImageContainer').style.display = 'block';
+            addLog('📊 Bounding boxes drawn on image', 'success');
         }
 
         // Analyze image
@@ -868,18 +921,8 @@ Return detailed analysis with specific measurements.`;
                     // Show detection list
                     displayDetections(analysisData);
 
-                    // Draw bounding boxes if available
-                    if (analysisData.detections) {
-                        drawBoundingBoxes(analysisData.detections);
-                    } else {
-                        // Show image without boxes
-                        document.getElementById('analyzedImageContainer').style.display = 'block';
-                        const canvas = document.getElementById('analysisCanvas');
-                        const ctx = canvas.getContext('2d');
-                        canvas.width = uploadedImageElement.naturalWidth;
-                        canvas.height = uploadedImageElement.naturalHeight;
-                        ctx.drawImage(uploadedImageElement, 0, 0);
-                    }
+                    // Draw bounding boxes using coordinates
+                    drawBoundingBoxes(analysisData);
 
                     // Check if navigation is feasible
                     if (analysisData.navigation_feasible && analysisData.rover_found && analysisData.goal_found) {
