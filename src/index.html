@@ -1,1367 +1,722 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 LLM Rover Control</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #1a1a1a;
-            color: #fff;
-            padding: 20px;
-            margin: 0;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .header {
-            text-align: center;
-            background: linear-gradient(45deg, #2196F3, #21CBF3);
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .calibration-info {
-            background: #2a2a2a;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #ff9800;
-            margin-bottom: 20px;
-        }
-        
-        .calibration-info h4 {
-            margin-top: 0;
-            color: #ff9800;
-        }
-        
-        .card {
-            background: #2a2a2a;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 15px 0;
-            border: 1px solid #444;
-        }
-        
-        .form-group {
-            margin: 15px 0;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #ccc;
-            font-weight: 500;
-        }
-        
-        input, textarea {
-            width: 100%;
-            padding: 10px;
-            background: #333;
-            border: 1px solid #555;
-            border-radius: 5px;
-            color: #fff;
-            box-sizing: border-box;
-        }
-        
-        textarea {
-            height: 100px;
-            font-family: monospace;
-            resize: vertical;
-        }
-        
-        .btn {
-            padding: 12px 20px;
-            background: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin: 5px;
-        }
-        
-        .btn:hover {
-            background: #1976D2;
-        }
-        
-        .btn:disabled {
-            background: #666;
-            cursor: not-allowed;
-        }
-        
-        .btn-danger {
-            background: #f44336;
-        }
-        
-        .btn-danger:hover {
-            background: #d32f2f;
-        }
-        
-        .btn-small {
-            padding: 8px 12px;
-            font-size: 14px;
-        }
-        
-        .btn-success {
-            background: #4caf50;
-        }
-        
-        .btn-success:hover {
-            background: #388e3c;
-        }
-
-        .btn-voice {
-            background: #9c27b0;
-        }
-
-        .btn-voice:hover {
-            background: #7b1fa2;
-        }
-
-        .btn-voice.recording {
-            background: #f44336;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-        
-        .control-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            max-width: 200px;
-            margin: 20px auto;
-        }
-        
-        .control-btn {
-            width: 60px;
-            height: 60px;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .output {
-            background: #1a1a1a;
-            border: 1px solid #555;
-            padding: 15px;
-            border-radius: 5px;
-            height: 400px;
-            overflow-y: auto;
-            font-family: monospace;
-            white-space: pre-wrap;
-            font-size: 12px;
-        }
-        
-        .status {
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-        }
-        
-        .status.success { background: #4caf50; }
-        .status.error { background: #f44336; }
-        .status.warning { background: #ff9800; }
-        .status.info { background: #2196f3; }
-        
-        .preset-commands {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin: 15px 0;
-        }
-        
-        .preset-btn {
-            padding: 8px 12px;
-            background: #444;
-            border: 1px solid #666;
-            border-radius: 15px;
-            color: #fff;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        
-        .preset-btn:hover {
-            background: #555;
-        }
-        
-        .duration-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 15px 0;
-        }
-        
-        .duration-control input {
-            width: 80px;
-        }
-        
-        .info-badge {
-            display: inline-block;
-            background: #ff9800;
-            color: #000;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-left: 8px;
-        }
-
-        .image-upload-area {
-            border: 2px dashed #555;
-            border-radius: 8px;
-            padding: 30px;
-            text-align: center;
-            background: #333;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .image-upload-area:hover {
-            border-color: #2196F3;
-            background: #3a3a3a;
-        }
-
-        .image-upload-area.dragover {
-            border-color: #4caf50;
-            background: #2d4a2d;
-        }
-
-        .image-preview {
-            max-width: 100%;
-            max-height: 400px;
-            margin: 15px auto;
-            display: none;
-            border-radius: 8px;
-            border: 1px solid #555;
-        }
-
-        .image-info {
-            background: #1a1a1a;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-            font-size: 12px;
-            display: none;
-        }
-
-        .analyzed-image-container {
-            position: relative;
-            display: none;
-            margin: 15px 0;
-            text-align: center;
-        }
-
-        .analyzed-image-container canvas {
-            max-width: 100%;
-            border: 2px solid #4caf50;
-            border-radius: 8px;
-            background: white;
-        }
-
-        .analysis-overlay {
-            position: absolute;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            pointer-events: none;
-        }
-
-        .area-config {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 15px 0;
-        }
-
-        .tab-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #444;
-            padding-bottom: 10px;
-            flex-wrap: wrap;
-        }
-
-        .tab-btn {
-            padding: 10px 20px;
-            background: #333;
-            border: none;
-            color: #ccc;
-            cursor: pointer;
-            border-radius: 5px 5px 0 0;
-            transition: all 0.3s;
-        }
-
-        .tab-btn.active {
-            background: #2196F3;
-            color: white;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .voice-controls {
-            display: flex;
-            gap: 10px;
-            margin: 15px 0;
-            flex-wrap: wrap;
-        }
-
-        .detection-list {
-            background: #1a1a1a;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            display: none;
-        }
-
-        .detection-item {
-            padding: 8px;
-            margin: 5px 0;
-            background: #2a2a2a;
-            border-left: 3px solid #4caf50;
-            border-radius: 3px;
-        }
-
-        .detection-item.obstacle {
-            border-left-color: #ff9800;
-        }
-
-        .detection-item.goal {
-            border-left-color: #f44336;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🤖 LLM Rover Control</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#1a1a1a; color:#fff; padding:20px; margin:0; }
+    .container{ max-width:1200px; margin:0 auto; }
+    .header{ text-align:center; background:linear-gradient(45deg,#2196F3,#21CBF3); padding:20px; border-radius:10px; margin-bottom:20px;}
+    .card{ background:#2a2a2a; padding:20px; border-radius:10px; margin:15px 0; border:1px solid #444;}
+    .form-group{ margin:15px 0;}
+    label{ display:block; margin-bottom:5px; color:#ccc; font-weight:500;}
+    input, textarea{ width:100%; padding:10px; background:#333; border:1px solid #555; border-radius:5px; color:#fff; box-sizing:border-box;}
+    textarea{ height:100px; font-family:monospace; resize:vertical;}
+    .btn{ padding:12px 20px; background:#2196F3; color:white; border:none; border-radius:5px; cursor:pointer; font-size:16px; margin:5px;}
+    .btn:hover{ background:#1976D2;}
+    .btn:disabled{ background:#666; cursor:not-allowed;}
+    .btn-success{ background:#4caf50;}
+    .btn-success:hover{ background:#388e3c;}
+    .btn-danger{ background:#f44336;}
+    .btn-danger:hover{ background:#d32f2f;}
+    .btn-small{ padding:8px 12px; font-size:14px; }
+    .output{ background:#1a1a1a; border:1px solid #555; padding:15px; border-radius:5px; height:380px; overflow-y:auto; font-family:monospace; white-space:pre-wrap; font-size:12px;}
+    .status{ padding:10px; border-radius:5px; margin:10px 0; display:none;}
+    .status.success{ background:#4caf50;}
+    .status.error{ background:#f44336;}
+    .status.warning{ background:#ff9800; color:#000;}
+    .status.info{ background:#2196f3;}
+    .tab-buttons{ display:flex; gap:10px; margin-bottom:15px; border-bottom:2px solid #444; padding-bottom:10px; flex-wrap:wrap;}
+    .tab-btn{ padding:10px 20px; background:#333; border:none; color:#ccc; cursor:pointer; border-radius:5px 5px 0 0; transition:all .3s;}
+    .tab-btn.active{ background:#2196F3; color:white;}
+    .tab-content{ display:none;}
+    .tab-content.active{ display:block;}
+    .preset-commands{ display:flex; flex-wrap:wrap; gap:8px; margin:15px 0;}
+    .preset-btn{ padding:8px 12px; background:#444; border:1px solid #666; border-radius:15px; color:#fff; cursor:pointer; font-size:12px;}
+    .preset-btn:hover{ background:#555;}
+    .image-upload-area{
+      border:2px dashed #555; border-radius:8px; padding:25px; text-align:center;
+      background:#333; cursor:pointer; transition:all .3s ease;
+    }
+    .image-upload-area:hover{ border-color:#2196F3; background:#3a3a3a;}
+    .image-upload-area.dragover{ border-color:#4caf50; background:#2d4a2d;}
+    .image-preview{ max-width:100%; max-height:380px; margin:15px auto; display:none; border-radius:8px; border:1px solid #555;}
+    .image-info{ background:#1a1a1a; padding:10px; border-radius:5px; margin:10px 0; font-size:12px; display:none;}
+    .analyzed-image-container{ display:none; margin:15px 0; text-align:center;}
+    .analyzed-image-container canvas{ max-width:100%; border:2px solid #4caf50; border-radius:8px; background:white;}
+    .detection-list{ background:#1a1a1a; padding:15px; border-radius:8px; margin:15px 0; display:none;}
+    .detection-item{ padding:8px; margin:5px 0; background:#2a2a2a; border-left:3px solid #4caf50; border-radius:3px;}
+    .detection-item.obstacle{ border-left-color:#ff9800;}
+    .detection-item.goal{ border-left-color:#f44336;}
+    .calibration-info{ background:#2a2a2a; padding:15px; border-radius:8px; border-left:4px solid #ff9800; margin-bottom:20px;}
+    .calibration-info h4{ margin-top:0; color:#ff9800;}
+    .area-config{ display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:15px 0;}
+    .manual-box{ display:none; background:#2a2a2a; padding:15px; border-radius:8px; margin:10px 0; border:2px solid #ff9800;}
+    .manual-box h4{ margin:0 0 8px 0; color:#ff9800;}
+    .bbox-grid{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; margin-top:8px;}
+    .bbox-grid label{ font-size:12px; }
+    .small-note{ font-size:11px; color:#aaa; }
+  </style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🤖 LLM Rover Control</h1>
-            <p>AI-Powered Navigation with Voice & Image Analysis</p>
-        </div>
+<div class="container">
+  <div class="header">
+    <h1>🤖 LLM Rover Control</h1>
+    <p>AI-Powered Navigation with Image Analysis (Real Bounding Boxes)</p>
+  </div>
 
-        <div class="calibration-info">
-            <h4>⚙️ System Status & Calibration Needed</h4>
-            <p style="margin: 5px 0;"><strong>Speed:</strong> 100% | <strong>Turn Duration:</strong> Calibrated on Pi</p>
-            <p style="margin: 5px 0; color: #ff9800;"><strong>⚠️ Distance Calibration Required!</strong> See "Image" tab for calibration instructions.</p>
-        </div>
+  <div class="calibration-info">
+    <h4>⚙️ Key Fixes Applied</h4>
+    <p style="margin:5px 0;">
+      ✅ AI now returns <b>real bounding boxes</b> (x1,y1,x2,y2%) + confidence.<br/>
+      ✅ UI draws boxes accurately (no fixed-size fake boxes).<br/>
+      ✅ Manual bbox correction supported if needed.<br/>
+      ⚠️ Movement distance still needs feedback (camera re-check / sensors).
+    </p>
+  </div>
 
-        <div class="card">
-            <div class="tab-buttons">
-                <button class="tab-btn active" onclick="switchTab('text')">💬 Text</button>
-                <button class="tab-btn" onclick="switchTab('voice')">🎤 Voice</button>
-                <button class="tab-btn" onclick="switchTab('image')">🖼️ Image</button>
-                <button class="tab-btn" onclick="switchTab('manual')">⚙️ Manual</button>
-            </div>
-
-            <!-- Text Command Tab -->
-            <div id="text-tab" class="tab-content active">
-                <h3>🗣️ Natural Language Control</h3>
-                
-                <div class="form-group">
-                    <label>Tell your rover what to do:</label>
-                    <textarea id="user-prompt" placeholder="Examples:
-• Move forward for 2 seconds
-• Forward 1 sec, turn left, forward 1.5 sec
-• Turn right and move backward">Move forward for 2 seconds</textarea>
-                </div>
-
-                <div class="preset-commands">
-                    <div class="preset-btn" onclick="setPrompt('move forward for 2 seconds')">Forward 2s</div>
-                    <div class="preset-btn" onclick="setPrompt('move forward for 5 seconds')">Forward 5s</div>
-                    <div class="preset-btn" onclick="setPrompt('turn left')">Turn Left</div>
-                    <div class="preset-btn" onclick="setPrompt('turn right')">Turn Right</div>
-                    <div class="preset-btn" onclick="setPrompt('move backward for 2 seconds')">Backward 2s</div>
-                </div>
-
-                <button class="btn" id="send-command" onclick="sendTextCommand()" style="width: 100%;">
-                    🚀 Send Command
-                </button>
-            </div>
-
-            <!-- Voice Command Tab -->
-            <div id="voice-tab" class="tab-content">
-                <h3>🎤 Voice Navigation</h3>
-                
-                <div style="background: #2d4a2d; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 3px solid #4caf50;">
-                    <strong>✅ Voice Commands Supported:</strong><br>
-                    • "Move forward for 2 seconds"<br>
-                    • "Turn left" or "Turn right"<br>
-                    • "Stop"<br>
-                    • Any natural language navigation command
-                </div>
-
-                <div class="voice-controls">
-                    <button class="btn btn-voice" id="voice-btn" onclick="toggleVoiceRecording()" style="flex: 1;">
-                        🎤 Click to Speak
-                    </button>
-                </div>
-
-                <div id="voice-status" style="background: #333; padding: 15px; border-radius: 8px; margin: 15px 0; min-height: 60px;">
-                    <strong>Status:</strong> <span id="voice-status-text">Ready to listen...</span><br>
-                    <strong>Recognized:</strong> <span id="voice-transcript" style="color: #4caf50;">None</span>
-                </div>
-
-                <div style="font-size: 12px; color: #888; margin-top: 10px;">
-                    💡 Tip: Works best in Chrome browser. Click button and speak clearly.
-                </div>
-            </div>
-
-            <!-- Image Navigation Tab -->
-            <div id="image-tab" class="tab-content">
-                <h3>🖼️ Image-Based Navigation</h3>
-
-                <div style="background: #3a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #f44336;">
-                    <strong>⚠️ DISTANCE CALIBRATION REQUIRED</strong>
-                    <p style="margin: 10px 0 5px 0; font-size: 13px;">
-                        Before using image navigation, you MUST calibrate rover speed:
-                    </p>
-                    <ol style="margin: 5px 0; padding-left: 20px; font-size: 12px;">
-                        <li>Measure 1 meter distance on floor (use tape measure)</li>
-                        <li>Command: "move forward for 1 second"</li>
-                        <li>Measure actual distance traveled</li>
-                        <li>Calculate: <code>speed = distance / 1 second</code></li>
-                        <li>Example: If traveled 30cm → speed = 0.3 m/s</li>
-                        <li>Enter your calibrated speed below ↓</li>
-                    </ol>
-                </div>
-
-                <div class="form-group">
-                    <label>🎯 Rover Speed Calibration (IMPORTANT!):</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="number" id="rover-speed" value="0.3" step="0.05" min="0.1" max="1.0" style="width: 100px;">
-                        <span>meters/second at 100% speed</span>
-                    </div>
-                    <p style="font-size: 11px; color: #888; margin: 5px 0 0 0;">
-                        Default: 0.3 m/s (30cm per second). Measure your actual rover speed!
-                    </p>
-                </div>
-                
-                <div class="form-group">
-                    <label>Upload Area Map (JPG, JPEG, PNG):</label>
-                    <div class="image-upload-area" id="dropArea" onclick="document.getElementById('imageInput').click()">
-                        <p>📤 Click to upload or drag & drop image here</p>
-                        <p style="font-size: 12px; color: #888;">Supported: JPG, JPEG, PNG</p>
-                        <p style="font-size: 11px; color: #666; margin-top: 10px;">
-                            Requirements:<br>
-                            • Rover clearly visible at starting position<br>
-                            • Goal/target clearly marked (bright color recommended)<br>
-                            • Obstacles visible with good contrast
-                        </p>
-                    </div>
-                    <input type="file" id="imageInput" accept="image/jpeg,image/jpg,image/png" style="display: none;" onchange="handleImageUpload(event)">
-                    
-                    <img id="imagePreview" class="image-preview" alt="Preview">
-                    
-                    <div id="imageInfo" class="image-info">
-                        <strong>Image loaded:</strong> <span id="imageName"></span><br>
-                        <strong>Size:</strong> <span id="imageSize"></span><br>
-                        <strong>Dimensions:</strong> <span id="imageDimensions"></span><br>
-                        <strong>Base64 size:</strong> <span id="base64Size"></span>
-                    </div>
-
-                    <!-- Detection Results -->
-                    <div id="detectionList" class="detection-list">
-                        <h4 style="margin-top: 0; color: #4caf50;">🔍 Detected Objects:</h4>
-                        <div id="detectionItems"></div>
-                    </div>
-
-                    <!-- Analysis visualization with bounding boxes -->
-                    <div id="analyzedImageContainer" class="analyzed-image-container">
-                        <canvas id="analysisCanvas"></canvas>
-                    </div>
-                </div>
-
-                <div class="area-config">
-                    <div class="form-group">
-                        <label>Area Width (meters):</label>
-                        <input type="number" id="areaWidth" value="1.5" step="0.1" min="0.5" max="10">
-                    </div>
-                    <div class="form-group">
-                        <label>Area Height (meters):</label>
-                        <input type="number" id="areaHeight" value="2.4" step="0.1" min="0.5" max="10">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Navigation Instructions:</label>
-                    <textarea id="nav-instructions" placeholder="Navigate to the goal avoiding obstacles">Navigate from rover position to goal avoiding all obstacles within the black boundary</textarea>
-                </div>
-
-                <button class="btn btn-success" id="analyze-image-btn" onclick="analyzeImage()" style="width: 100%; margin-bottom: 10px;">
-                    🔍 Step 1: Analyze Image & Detect Objects
-                </button>
-
-                <div id="manual-correction" style="display: none; background: #2a2a2a; padding: 15px; border-radius: 8px; margin: 10px 0; border: 2px solid #ff9800;">
-                    <h4 style="margin-top: 0; color: #ff9800;">📝 Manual Coordinate Correction</h4>
-                    <p style="font-size: 12px; margin: 5px 0;">If bounding boxes are inaccurate, adjust coordinates manually:</p>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;">
-                        <div>
-                            <label style="font-size: 12px;">🤖 Rover X%:</label>
-                            <input type="number" id="rover-x" min="0" max="100" step="1" style="width: 100%;">
-                        </div>
-                        <div>
-                            <label style="font-size: 12px;">🤖 Rover Y%:</label>
-                            <input type="number" id="rover-y" min="0" max="100" step="1" style="width: 100%;">
-                        </div>
-                        <div>
-                            <label style="font-size: 12px;">🎯 Goal X%:</label>
-                            <input type="number" id="goal-x" min="0" max="100" step="1" style="width: 100%;">
-                        </div>
-                        <div>
-                            <label style="font-size: 12px;">🎯 Goal Y%:</label>
-                            <input type="number" id="goal-y" min="0" max="100" step="1" style="width: 100%;">
-                        </div>
-                    </div>
-                    
-                    <button class="btn btn-small" onclick="applyManualCorrection()" style="width: 100%;">
-                        ✅ Apply Corrections & Redraw
-                    </button>
-                    
-                    <p style="font-size: 11px; color: #888; margin: 10px 0 0 0;">
-                        💡 Tip: (0%, 0%) = top-left, (100%, 100%) = bottom-right<br>
-                        Rover should be in bottom portion (Y: 70-95%)<br>
-                        Goal should be above rover (Y: less than rover's Y)
-                    </p>
-                </div>
-
-                <button class="btn" id="send-image-command" onclick="sendImageCommand()" style="width: 100%;" disabled>
-                    🗺️ Step 2: Generate & Execute Navigation Plan
-                </button>
-            </div>
-
-            <!-- Manual Control Tab -->
-            <div id="manual-tab" class="tab-content">
-                <h3>⚙️ Manual Controls</h3>
-                
-                <div class="duration-control">
-                    <label style="margin: 0;">Forward/Backward Duration:</label>
-                    <input type="number" id="duration-input" value="2" min="0.5" max="10" step="0.5">
-                    <span>seconds</span>
-                </div>
-                
-                <div class="control-grid">
-                    <div></div>
-                    <button class="control-btn btn" onclick="quickCommand('forward')">↑</button>
-                    <div></div>
-                    <button class="control-btn btn" onclick="quickCommand('left')">←</button>
-                    <button class="control-btn btn btn-danger" onclick="quickCommand('stop')">⏹</button>
-                    <button class="control-btn btn" onclick="quickCommand('right')">→</button>
-                    <div></div>
-                    <button class="control-btn btn" onclick="quickCommand('backward')">↓</button>
-                    <div></div>
-                </div>
-
-                <p style="text-align: center; color: #888; font-size: 12px;">
-                    Alt+W/A/S/D for keyboard control
-                </p>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>🔧 Settings</h3>
-            <div class="form-group">
-                <label>Azure Function URL:</label>
-                <input type="text" id="function-url" value="https://az-tutorial.azurewebsites.net/api/http_trigger_pi">
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>📊 Response Log</h3>
-            <div id="response" class="output">🚀 Rover Control System Ready
-
-Available Control Modes:
-• 💬 Text: Natural language commands
-• 🎤 Voice: Speak your commands (Chrome only)
-• 🖼️ Image: Upload map for AI navigation (requires speed calibration!)
-• ⚙️ Manual: Arrow key controls
-
-⚠️ IMPORTANT: Calibrate rover speed before using image navigation!
-
-Ready to send commands!
-</div>
-            
-            <div id="status" class="status" style="display: none;"></div>
-            
-            <button class="btn btn-small" onclick="clearLog()">Clear Log</button>
-            <button class="btn btn-danger btn-small" onclick="emergencyStop()">🛑 Emergency Stop</button>
-        </div>
+  <div class="card">
+    <div class="tab-buttons">
+      <button class="tab-btn active" onclick="switchTab(event,'text')">💬 Text</button>
+      <button class="tab-btn" onclick="switchTab(event,'image')">🖼️ Image</button>
+      <button class="tab-btn" onclick="switchTab(event,'manual')">⚙️ Manual</button>
     </div>
 
-    <script>
-        let commandInProgress = false;
-        let uploadedImage = null;
-        let uploadedImageElement = null;
-        let imageAnalyzed = false;
-        let recognition = null;
-        let isRecording = false;
-        let analysisData = null;
+    <!-- TEXT TAB -->
+    <div id="text-tab" class="tab-content active">
+      <h3>🗣️ Natural Language Control</h3>
 
-        // Tab switching
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(tabName + '-tab').classList.add('active');
-            
-            addLog(`Switched to ${tabName} mode`, 'info');
+      <div class="form-group">
+        <label>Tell your rover what to do:</label>
+        <textarea id="user-prompt">Move forward for 2 seconds</textarea>
+      </div>
+
+      <div class="preset-commands">
+        <div class="preset-btn" onclick="setPrompt('move forward for 2 seconds')">Forward 2s</div>
+        <div class="preset-btn" onclick="setPrompt('move forward for 5 seconds')">Forward 5s</div>
+        <div class="preset-btn" onclick="setPrompt('turn left')">Turn Left</div>
+        <div class="preset-btn" onclick="setPrompt('turn right')">Turn Right</div>
+        <div class="preset-btn" onclick="setPrompt('move backward for 2 seconds')">Backward 2s</div>
+      </div>
+
+      <button class="btn" id="send-command" onclick="sendTextCommand()" style="width:100%;">
+        🚀 Send Command
+      </button>
+    </div>
+
+    <!-- IMAGE TAB -->
+    <div id="image-tab" class="tab-content">
+      <h3>🖼️ Image-Based Navigation</h3>
+
+      <div style="background:#3a2a2a; padding:15px; border-radius:8px; margin-bottom:15px; border-left:4px solid #f44336;">
+        <b>Recommended setup for accuracy:</b>
+        <ul style="margin:8px 0 0 18px; font-size:13px;">
+          <li>Place rover on an <b>A4 paper</b> (draw thick black border on it).</li>
+          <li>Make sure the black tape boundary is visible.</li>
+          <li>Keep camera angle as top-down as possible.</li>
+        </ul>
+      </div>
+
+      <div class="form-group">
+        <label>🎯 Rover Speed Calibration (meters/second at 100% power)</label>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="number" id="rover-speed" value="0.3" step="0.05" min="0.05" max="2.0" style="width:110px;">
+          <span class="small-note">Example: 0.30 = 30cm per second</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Upload Area Map (JPG, JPEG, PNG):</label>
+        <div class="image-upload-area" id="dropArea" onclick="document.getElementById('imageInput').click()">
+          <p>📤 Click to upload or drag & drop image here</p>
+          <p style="font-size:12px; color:#aaa">Supported: JPG, JPEG, PNG (max 10MB)</p>
+        </div>
+        <input type="file" id="imageInput" accept="image/jpeg,image/jpg,image/png" style="display:none" onchange="handleImageUpload(event)">
+
+        <img id="imagePreview" class="image-preview" alt="Preview" />
+
+        <div id="imageInfo" class="image-info">
+          <b>Image loaded:</b> <span id="imageName"></span><br/>
+          <b>Size:</b> <span id="imageSize"></span><br/>
+          <b>Dimensions:</b> <span id="imageDimensions"></span><br/>
+          <b>Base64 size:</b> <span id="base64Size"></span>
+        </div>
+
+        <div id="detectionList" class="detection-list">
+          <h4 style="margin:0 0 10px 0; color:#4caf50;">🔍 Detected Objects</h4>
+          <div id="detectionItems"></div>
+        </div>
+
+        <div id="analyzedImageContainer" class="analyzed-image-container">
+          <canvas id="analysisCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="area-config">
+        <div class="form-group">
+          <label>Area Width (meters):</label>
+          <input type="number" id="areaWidth" value="1.5" step="0.1" min="0.5" max="10">
+        </div>
+        <div class="form-group">
+          <label>Area Height (meters):</label>
+          <input type="number" id="areaHeight" value="2.4" step="0.1" min="0.5" max="10">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Navigation Instructions:</label>
+        <textarea id="nav-instructions">Navigate from rover position to goal avoiding all obstacles within the black boundary</textarea>
+      </div>
+
+      <button class="btn btn-success" id="analyze-image-btn" onclick="analyzeImage()" style="width:100%; margin-bottom:10px;">
+        🔍 Step 1: Analyze Image & Detect Objects
+      </button>
+
+      <!-- Manual bbox correction -->
+      <div id="manual-correction" class="manual-box">
+        <h4>📝 Manual Bounding Box Correction (Percent)</h4>
+        <div class="small-note">Edit bbox % if AI detection is off. x1,y1 is top-left; x2,y2 is bottom-right.</div>
+
+        <div style="margin-top:10px;">
+          <b style="color:#00ff00;">ROVER bbox%</b>
+          <div class="bbox-grid">
+            <div><label>x1%</label><input id="rover-x1" type="number" min="0" max="100"></div>
+            <div><label>y1%</label><input id="rover-y1" type="number" min="0" max="100"></div>
+            <div><label>x2%</label><input id="rover-x2" type="number" min="0" max="100"></div>
+            <div><label>y2%</label><input id="rover-y2" type="number" min="0" max="100"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <b style="color:#ff0000;">GOAL bbox%</b>
+          <div class="bbox-grid">
+            <div><label>x1%</label><input id="goal-x1" type="number" min="0" max="100"></div>
+            <div><label>y1%</label><input id="goal-y1" type="number" min="0" max="100"></div>
+            <div><label>x2%</label><input id="goal-x2" type="number" min="0" max="100"></div>
+            <div><label>y2%</label><input id="goal-y2" type="number" min="0" max="100"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-small" onclick="applyManualCorrection()" style="width:100%; margin-top:10px;">
+          ✅ Apply Corrections & Redraw
+        </button>
+      </div>
+
+      <button class="btn" id="send-image-command" onclick="sendImageCommand()" style="width:100%;" disabled>
+        🗺️ Step 2: Generate & Execute Navigation Plan
+      </button>
+    </div>
+
+    <!-- MANUAL TAB -->
+    <div id="manual-tab" class="tab-content">
+      <h3>⚙️ Manual Controls (Basic)</h3>
+      <div class="form-group">
+        <label>Duration (seconds):</label>
+        <input type="number" id="duration-input" value="2" min="0.2" max="10" step="0.1">
+      </div>
+      <div class="preset-commands">
+        <div class="preset-btn" onclick="quickCommand('forward')">↑ Forward</div>
+        <div class="preset-btn" onclick="quickCommand('backward')">↓ Backward</div>
+        <div class="preset-btn" onclick="quickCommand('left')">← Left</div>
+        <div class="preset-btn" onclick="quickCommand('right')">→ Right</div>
+        <div class="preset-btn" onclick="quickCommand('stop')">⏹ Stop</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🔧 Settings</h3>
+    <div class="form-group">
+      <label>Azure Function URL:</label>
+      <input type="text" id="function-url" value="https://az-tutorial.azurewebsites.net/api/http_trigger_pi">
+      <div class="small-note">Make sure your Function allows CORS or returns Access-Control-Allow-Origin.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📊 Response Log</h3>
+    <div id="response" class="output">🚀 Rover Control System Ready
+
+Modes:
+• 💬 Text: Natural language commands
+• 🖼️ Image: Upload map for AI detection + navigation
+
+Tip:
+✅ A4 paper under rover improves repeatability.
+</div>
+
+    <div id="status" class="status"></div>
+
+    <button class="btn btn-small" onclick="clearLog()">Clear Log</button>
+    <button class="btn btn-danger btn-small" onclick="emergencyStop()">🛑 Emergency Stop</button>
+  </div>
+</div>
+
+<script>
+  let commandInProgress = false;
+  let uploadedImage = null;
+  let uploadedImageElement = null;
+  let imageAnalyzed = false;
+  let analysisData = null;
+
+  function switchTab(ev, tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    ev.target.classList.add('active');
+
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById(tabName + '-tab').classList.add('active');
+
+    addLog(`Switched to ${tabName} mode`, 'info');
+  }
+
+  // Drag & Drop setup
+  const dropArea = document.getElementById('dropArea');
+  ['dragenter','dragover','dragleave','drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+  });
+  ['dragenter','dragover'].forEach(eventName => {
+    dropArea.addEventListener(eventName, () => dropArea.classList.add('dragover'), false);
+  });
+  ['dragleave','drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, () => dropArea.classList.remove('dragover'), false);
+  });
+  dropArea.addEventListener('drop', (e) => {
+    const files = e.dataTransfer.files;
+    if (files.length > 0) handleImageUpload({ target: { files } });
+  }, false);
+
+  function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg','image/jpg','image/png'];
+    if (!validTypes.includes(file.type)) return showStatus('Invalid file type (JPG/PNG only)', 'error');
+    if (file.size > 10*1024*1024) return showStatus('File too large (max 10MB)', 'error');
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      uploadedImage = e.target.result;
+      imageAnalyzed = false;
+      analysisData = null;
+
+      const preview = document.getElementById('imagePreview');
+      preview.src = uploadedImage;
+      preview.style.display = 'block';
+      preview.onload = function() { uploadedImageElement = preview; };
+
+      document.getElementById('imageName').textContent = file.name;
+      document.getElementById('imageSize').textContent = (file.size/1024).toFixed(2) + ' KB';
+      document.getElementById('base64Size').textContent = (uploadedImage.length/1024).toFixed(2) + ' KB';
+
+      const img = new Image();
+      img.onload = function() {
+        document.getElementById('imageDimensions').textContent = `${this.width} × ${this.height}px`;
+      };
+      img.src = uploadedImage;
+
+      document.getElementById('imageInfo').style.display = 'block';
+      document.getElementById('analyzedImageContainer').style.display = 'none';
+      document.getElementById('detectionList').style.display = 'none';
+      document.getElementById('send-image-command').disabled = true;
+      document.getElementById('manual-correction').style.display = 'none';
+
+      addLog(`✅ Image loaded: ${file.name}`, 'success');
+      showStatus('Image uploaded! Click "Analyze Image" first.', 'success');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function pctToPx(imgW, imgH, p) {
+    return { x: (p.x/100)*imgW, y:(p.y/100)*imgH };
+  }
+
+  function drawBoxPct(ctx, imgW, imgH, box, strokeStyle, label) {
+    const x1 = (box.x1/100)*imgW;
+    const y1 = (box.y1/100)*imgH;
+    const x2 = (box.x2/100)*imgW;
+    const y2 = (box.y2/100)*imgH;
+    const w = Math.max(1, x2-x1);
+    const h = Math.max(1, y2-y1);
+
+    // translucent fill
+    ctx.fillStyle = strokeStyle.replace(')', ',0.18)').replace('rgb','rgba');
+    ctx.fillRect(x1, y1, w, h);
+
+    ctx.strokeStyle = strokeStyle;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(x1, y1, w, h);
+
+    ctx.font = 'bold 14px Arial';
+    ctx.fillStyle = strokeStyle;
+    ctx.fillText(label, x1+6, y1+18);
+  }
+
+  function drawBoundary(ctx, imgW, imgH, cornersPct) {
+    const pts = cornersPct.map(p => pctToPx(imgW, imgH, p));
+    ctx.strokeStyle = '#2196F3';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([12, 8]);
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#2196F3';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText('Boundary', pts[0].x+8, pts[0].y+18);
+  }
+
+  function drawA4(ctx, imgW, imgH, cornersPct) {
+    const pts = cornersPct.map(p => pctToPx(imgW, imgH, p));
+    ctx.strokeStyle = '#9c27b0';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#9c27b0';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText('A4 Reference', pts[0].x+8, pts[0].y+18);
+  }
+
+  function centerFromBboxPct(b) {
+    return { x: (b.x1+b.x2)/2, y: (b.y1+b.y2)/2 };
+  }
+
+  function drawAll(analysis) {
+    if (!uploadedImageElement) return;
+
+    const canvas = document.getElementById('analysisCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = uploadedImageElement.naturalWidth;
+    canvas.height = uploadedImageElement.naturalHeight;
+    const imgW = canvas.width, imgH = canvas.height;
+
+    ctx.drawImage(uploadedImageElement, 0, 0);
+
+    if (analysis.boundary && analysis.boundary.found && Array.isArray(analysis.boundary.corners_pct)) {
+      drawBoundary(ctx, imgW, imgH, analysis.boundary.corners_pct);
+    }
+    if (analysis.a4 && analysis.a4.found && Array.isArray(analysis.a4.corners_pct)) {
+      drawA4(ctx, imgW, imgH, analysis.a4.corners_pct);
+    }
+
+    (analysis.objects || []).forEach(obj => {
+      const conf = Math.round((obj.confidence || 0)*100);
+      if (obj.label === 'rover') {
+        drawBoxPct(ctx, imgW, imgH, obj.bbox_pct, 'rgb(0,255,0)', `ROVER ${conf}%`);
+      } else if (obj.label === 'goal') {
+        drawBoxPct(ctx, imgW, imgH, obj.bbox_pct, 'rgb(255,0,0)', `GOAL ${conf}%`);
+      } else if (obj.label === 'obstacle') {
+        drawBoxPct(ctx, imgW, imgH, obj.bbox_pct, 'rgb(255,152,0)', `OBS: ${obj.name}`);
+      }
+    });
+
+    document.getElementById('analyzedImageContainer').style.display = 'block';
+  }
+
+  function displayDetections(analysis) {
+    const container = document.getElementById('detectionItems');
+    container.innerHTML = '';
+
+    const objs = analysis.objects || [];
+    const rover = objs.find(o => o.label==='rover');
+    const goal  = objs.find(o => o.label==='goal');
+    const obstacles = objs.filter(o => o.label==='obstacle');
+
+    if (rover) {
+      const c = centerFromBboxPct(rover.bbox_pct);
+      const item = document.createElement('div');
+      item.className = 'detection-item';
+      item.innerHTML = `<b>🤖 Rover</b> | center: (${c.x.toFixed(1)}%, ${c.y.toFixed(1)}%) | conf: ${(rover.confidence*100).toFixed(0)}%`;
+      container.appendChild(item);
+    }
+    if (goal) {
+      const c = centerFromBboxPct(goal.bbox_pct);
+      const item = document.createElement('div');
+      item.className = 'detection-item goal';
+      item.innerHTML = `<b>🎯 Goal</b> (${goal.name}) | center: (${c.x.toFixed(1)}%, ${c.y.toFixed(1)}%) | conf: ${(goal.confidence*100).toFixed(0)}%`;
+      container.appendChild(item);
+    }
+    obstacles.forEach(o => {
+      const c = centerFromBboxPct(o.bbox_pct);
+      const item = document.createElement('div');
+      item.className = 'detection-item obstacle';
+      item.innerHTML = `<b>⚠️ Obstacle</b> ${o.name} | center: (${c.x.toFixed(1)}%, ${c.y.toFixed(1)}%) | conf: ${(o.confidence*100).toFixed(0)}%`;
+      container.appendChild(item);
+    });
+
+    document.getElementById('detectionList').style.display = 'block';
+  }
+
+  async function analyzeImage() {
+    if (!uploadedImage) return showStatus('Upload an image first', 'error');
+
+    const functionUrl = document.getElementById('function-url').value.trim();
+    const areaWidth  = parseFloat(document.getElementById('areaWidth').value) || 1.5;
+    const areaHeight = parseFloat(document.getElementById('areaHeight').value) || 2.4;
+
+    const analyzeBtn = document.getElementById('analyze-image-btn');
+    analyzeBtn.textContent = '🔄 Analyzing...';
+    analyzeBtn.disabled = true;
+
+    addLog('🔍 Starting image analysis (bbox + schema)...', 'info');
+    showStatus('Analyzing image...', 'info');
+
+    // Short + clear prompt (schema enforces structure)
+    const analysisPrompt =
+`Detect rover, goal, obstacles inside the black tape boundary.
+Return tight bounding boxes in percent coordinates.
+Also detect A4 paper if visible (for distance reference).`;
+
+    try {
+      const response = await fetch(functionUrl, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          user_prompt: analysisPrompt,
+          image: uploadedImage,
+          analysis_only: true,
+          area_width_m: areaWidth,
+          area_height_m: areaHeight
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'success' && data.analysis) {
+        analysisData = data.analysis;
+
+        addLog('✅ Analysis complete!', 'success');
+        addLog(`Notes: ${analysisData.notes || '(none)'}`, 'info');
+
+        displayDetections(analysisData);
+        drawAll(analysisData);
+
+        // Populate manual correction for rover & goal
+        const rover = (analysisData.objects||[]).find(o=>o.label==='rover');
+        const goal  = (analysisData.objects||[]).find(o=>o.label==='goal');
+        if (rover && rover.bbox_pct) {
+          rover_x1.value = rover.bbox_pct.x1;
+          rover_y1.value = rover.bbox_pct.y1;
+          rover_x2.value = rover.bbox_pct.x2;
+          rover_y2.value = rover.bbox_pct.y2;
+        }
+        if (goal && goal.bbox_pct) {
+          goal_x1.value = goal.bbox_pct.x1;
+          goal_y1.value = goal.bbox_pct.y1;
+          goal_x2.value = goal.bbox_pct.x2;
+          goal_y2.value = goal.bbox_pct.y2;
+        }
+        document.getElementById('manual-correction').style.display = 'block';
+
+        // Check feasibility
+        const hasRover = !!rover;
+        const hasGoal  = !!goal;
+        imageAnalyzed = hasRover && hasGoal;
+        document.getElementById('send-image-command').disabled = !imageAnalyzed;
+
+        if (imageAnalyzed) showStatus('✅ Ready: rover + goal detected.', 'success');
+        else showStatus('⚠️ Need rover and goal detected (or manual fix).', 'warning');
+
+      } else {
+        addLog(`❌ Analysis failed: ${data.error || 'Unknown error'}`, 'error');
+        showStatus('Analysis failed. Check log.', 'error');
+      }
+
+    } catch (err) {
+      addLog(`❌ Network error: ${err.message}`, 'error');
+      showStatus(`Error: ${err.message}`, 'error');
+    } finally {
+      analyzeBtn.textContent = '🔍 Step 1: Analyze Image & Detect Objects';
+      analyzeBtn.disabled = false;
+    }
+  }
+
+  function applyManualCorrection() {
+    if (!analysisData) return showStatus('No analysis to correct', 'error');
+
+    const rover = (analysisData.objects||[]).find(o=>o.label==='rover');
+    const goal  = (analysisData.objects||[]).find(o=>o.label==='goal');
+
+    if (rover) {
+      rover.bbox_pct = {
+        x1: parseFloat(rover_x1.value), y1: parseFloat(rover_y1.value),
+        x2: parseFloat(rover_x2.value), y2: parseFloat(rover_y2.value)
+      };
+      rover.confidence = Math.max(rover.confidence||0, 0.5); // just keep ok
+    }
+    if (goal) {
+      goal.bbox_pct = {
+        x1: parseFloat(goal_x1.value), y1: parseFloat(goal_y1.value),
+        x2: parseFloat(goal_x2.value), y2: parseFloat(goal_y2.value)
+      };
+      goal.confidence = Math.max(goal.confidence||0, 0.5);
+    }
+
+    drawAll(analysisData);
+    displayDetections(analysisData);
+
+    imageAnalyzed = !!rover && !!goal;
+    document.getElementById('send-image-command').disabled = !imageAnalyzed;
+
+    addLog('✏️ Manual bbox correction applied', 'success');
+    showStatus('Updated boxes drawn.', 'success');
+  }
+
+  async function sendImageCommand() {
+    if (!imageAnalyzed || !analysisData) return showStatus('Analyze image first', 'warning');
+
+    const functionUrl = document.getElementById('function-url').value.trim();
+    const navInstructions = document.getElementById('nav-instructions').value.trim();
+    const roverSpeed = parseFloat(document.getElementById('rover-speed').value) || 0.3;
+    const areaWidth  = parseFloat(document.getElementById('areaWidth').value) || 1.5;
+    const areaHeight = parseFloat(document.getElementById('areaHeight').value) || 2.4;
+
+    const btn = document.getElementById('send-image-command');
+    btn.textContent = '🔄 Planning Route...';
+    btn.disabled = true;
+
+    // Provide the model the *structured detection result*
+    const payloadForPlanner = {
+      area: { width_m: areaWidth, height_m: areaHeight },
+      rover_speed_mps: roverSpeed,
+      detection: analysisData,
+      instructions: navInstructions
+    };
+
+    addLog('🗺️ Sending structured detections to planner...', 'info');
+
+    try {
+      const response = await fetch(functionUrl, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          user_prompt: "Generate rover movement JSON from the provided detection object and instructions.",
+          image: uploadedImage,            // optional, but helps if planner wants to re-check
+          planner_payload: payloadForPlanner
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'success' && data.generated_json) {
+        addLog('✅ Navigation plan generated + sent!', 'success');
+
+        const plan = data.generated_json;
+        if (plan.command === 'sequence' && Array.isArray(plan.commands)) {
+          let totalDistance = 0;
+          plan.commands.forEach((cmd, i) => {
+            const movement = cmd.movement || '(turn)';
+            const duration = cmd.duration;
+            const dist = (duration != null) ? (duration * roverSpeed) : 0;
+            totalDistance += dist;
+            addLog(`Step ${i+1}: ${movement}${duration!=null ? ` ${duration}s (~${dist.toFixed(2)}m)` : ''}`, 'info');
+          });
+          addLog(`Total estimated distance: ~${totalDistance.toFixed(2)}m`, 'info');
+          addLog(`IoT status: ${data.iot_status}`, data.iot_status === 'sent' ? 'success' : 'warning');
+          showStatus('🚀 Plan sent to rover!', 'success');
+        } else {
+          addLog('⚠️ Unexpected plan format returned', 'warning');
+          showStatus('Plan sent but format unexpected', 'warning');
         }
 
-        // Speech Recognition
-        function initSpeechRecognition() {
-            if ('webkitSpeechRecognition' in window) {
-                recognition = new webkitSpeechRecognition();
-                recognition.continuous = false;
-                recognition.interimResults = true;
-                recognition.lang = 'en-US';
-
-                recognition.onstart = function() {
-                    document.getElementById('voice-status-text').textContent = '🎤 Listening...';
-                    document.getElementById('voice-btn').classList.add('recording');
-                };
-
-                recognition.onresult = function(event) {
-                    let transcript = '';
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        transcript += event.results[i][0].transcript;
-                    }
-                    document.getElementById('voice-transcript').textContent = transcript;
-                };
-
-                recognition.onend = function() {
-                    isRecording = false;
-                    document.getElementById('voice-status-text').textContent = 'Processing command...';
-                    document.getElementById('voice-btn').classList.remove('recording');
-                    
-                    const transcript = document.getElementById('voice-transcript').textContent;
-                    if (transcript && transcript !== 'None') {
-                        setPrompt(transcript);
-                        sendTextCommand();
-                        document.getElementById('voice-status-text').textContent = 'Command sent!';
-                    } else {
-                        document.getElementById('voice-status-text').textContent = 'No speech detected. Try again.';
-                    }
-                };
-
-                recognition.onerror = function(event) {
-                    document.getElementById('voice-status-text').textContent = `Error: ${event.error}`;
-                    document.getElementById('voice-btn').classList.remove('recording');
-                    isRecording = false;
-                };
-            } else {
-                addLog('❌ Speech recognition not supported. Use Chrome browser.', 'error');
-                showStatus('Speech recognition not supported. Use Chrome.', 'error');
-            }
-        }
-
-        function toggleVoiceRecording() {
-            if (!recognition) {
-                initSpeechRecognition();
-            }
-
-            if (isRecording) {
-                recognition.stop();
-                isRecording = false;
-            } else {
-                document.getElementById('voice-transcript').textContent = 'None';
-                recognition.start();
-                isRecording = true;
-            }
-        }
-
-        // Drag and drop
-        const dropArea = document.getElementById('dropArea');
-        
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea?.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-            }, false);
-        });
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropArea?.addEventListener(eventName, () => dropArea.classList.add('dragover'), false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropArea?.addEventListener(eventName, () => dropArea.classList.remove('dragover'), false);
-        });
-
-        dropArea?.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleImageUpload({ target: { files: files } });
-            }
-        }, false);
-
-        // Image upload
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            
-            if (!file) return;
-            
-            const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-            if (!validTypes.includes(file.type)) {
-                showStatus('Invalid file type. Please upload JPG, JPEG, or PNG', 'error');
-                return;
-            }
-
-            if (file.size > 10 * 1024 * 1024) {
-                showStatus('File too large. Maximum size is 10MB', 'error');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const preview = document.getElementById('imagePreview');
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-                preview.onload = function() {
-                    uploadedImageElement = preview;
-                };
-                
-                uploadedImage = e.target.result;
-                imageAnalyzed = false;
-                
-                document.getElementById('imageName').textContent = file.name;
-                document.getElementById('imageSize').textContent = (file.size / 1024).toFixed(2) + ' KB';
-                document.getElementById('base64Size').textContent = (uploadedImage.length / 1024).toFixed(2) + ' KB';
-                
-                const img = new Image();
-                img.onload = function() {
-                    document.getElementById('imageDimensions').textContent = `${this.width} × ${this.height}px`;
-                };
-                img.src = e.target.result;
-                
-                document.getElementById('imageInfo').style.display = 'block';
-                document.getElementById('analyzedImageContainer').style.display = 'none';
-                document.getElementById('detectionList').style.display = 'none';
-                document.getElementById('send-image-command').disabled = true;
-                
-                addLog(`✅ Image loaded: ${file.name}`, 'success');
-                addLog(`📊 Base64 encoded: ${(uploadedImage.length / 1024).toFixed(2)} KB`, 'info');
-                showStatus('Image uploaded! Click "Analyze Image" first.', 'success');
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // Draw bounding boxes on canvas using percentage coordinates
-        function drawBoundingBoxes(analysis) {
-            if (!uploadedImageElement) return;
-
-            const canvas = document.getElementById('analysisCanvas');
-            const ctx = canvas.getContext('2d');
-
-            canvas.width = uploadedImageElement.naturalWidth;
-            canvas.height = uploadedImageElement.naturalHeight;
-
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-
-            // Draw original image
-            ctx.drawImage(uploadedImageElement, 0, 0);
-
-            // Helper function to convert percentage to pixels
-            function percentToPixel(coord) {
-                return {
-                    x: (coord.x / 100) * imgWidth,
-                    y: (coord.y / 100) * imgHeight
-                };
-            }
-
-            // Draw boundary FIRST (behind everything else)
-            if (analysis.boundary_detected && analysis.boundary_coordinates) {
-                const tl = percentToPixel(analysis.boundary_coordinates.top_left);
-                const br = percentToPixel(analysis.boundary_coordinates.bottom_right);
-                
-                ctx.strokeStyle = '#2196F3';
-                ctx.lineWidth = 3;
-                ctx.setLineDash([15, 10]);
-                ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
-                ctx.setLineDash([]);
-                
-                // Add label
-                ctx.fillStyle = '#2196F3';
-                ctx.font = 'bold 14px Arial';
-                ctx.fillText('Navigation Boundary', tl.x + 10, tl.y + 20);
-            }
-
-            // Draw obstacles
-            if (analysis.obstacle_list) {
-                analysis.obstacle_list.forEach((obstacle, i) => {
-                    if (obstacle.coordinates) {
-                        const pos = percentToPixel(obstacle.coordinates);
-                        
-                        // Estimate box size based on obstacle type
-                        let boxSize = 80; // default
-                        if (obstacle.estimated_size) {
-                            if (obstacle.estimated_size.includes('small')) boxSize = 60;
-                            if (obstacle.estimated_size.includes('medium')) boxSize = 90;
-                            if (obstacle.estimated_size.includes('large')) boxSize = 120;
-                        }
-                        
-                        // Draw semi-transparent fill
-                        ctx.fillStyle = 'rgba(255, 152, 0, 0.2)';
-                        ctx.fillRect(pos.x - boxSize/2, pos.y - boxSize/2, boxSize, boxSize);
-                        
-                        // Draw border
-                        ctx.strokeStyle = '#ff9800';
-                        ctx.lineWidth = 4;
-                        ctx.strokeRect(pos.x - boxSize/2, pos.y - boxSize/2, boxSize, boxSize);
-                        
-                        // Draw label with background
-                        ctx.fillStyle = 'rgba(255, 152, 0, 0.9)';
-                        const labelText = `⚠️ ${obstacle.type}`;
-                        const textWidth = ctx.measureText(labelText).width;
-                        ctx.fillRect(pos.x - textWidth/2 - 5, pos.y - boxSize/2 - 25, textWidth + 10, 20);
-                        
-                        ctx.fillStyle = '#000';
-                        ctx.font = 'bold 14px Arial';
-                        ctx.fillText(labelText, pos.x - textWidth/2, pos.y - boxSize/2 - 10);
-                        
-                        // Draw crosshair at center
-                        ctx.strokeStyle = '#ff9800';
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(pos.x - 10, pos.y);
-                        ctx.lineTo(pos.x + 10, pos.y);
-                        ctx.moveTo(pos.x, pos.y - 10);
-                        ctx.lineTo(pos.x, pos.y + 10);
-                        ctx.stroke();
-                    }
-                });
-            }
-
-            // Draw rover
-            if (analysis.rover_found && analysis.rover_coordinates) {
-                const pos = percentToPixel(analysis.rover_coordinates);
-                const size = 70; // rover box size
-                
-                // Draw semi-transparent fill
-                ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
-                ctx.fillRect(pos.x - size/2, pos.y - size/2, size, size);
-                
-                // Draw border
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 5;
-                ctx.strokeRect(pos.x - size/2, pos.y - size/2, size, size);
-                
-                // Draw label with background
-                ctx.fillStyle = 'rgba(0, 255, 0, 0.9)';
-                const labelText = '🤖 ROVER START';
-                const textWidth = ctx.measureText(labelText).width;
-                ctx.fillRect(pos.x - textWidth/2 - 5, pos.y - size/2 - 25, textWidth + 10, 20);
-                
-                ctx.fillStyle = '#000';
-                ctx.font = 'bold 16px Arial';
-                ctx.fillText(labelText, pos.x - textWidth/2, pos.y - size/2 - 10);
-                
-                // Draw direction arrow (pointing up)
-                ctx.fillStyle = '#00ff00';
-                ctx.beginPath();
-                ctx.moveTo(pos.x, pos.y - 15);
-                ctx.lineTo(pos.x - 8, pos.y + 5);
-                ctx.lineTo(pos.x + 8, pos.y + 5);
-                ctx.closePath();
-                ctx.fill();
-            }
-
-            // Draw goal
-            if (analysis.goal_found && analysis.goal_coordinates) {
-                const pos = percentToPixel(analysis.goal_coordinates);
-                const size = 70;
-                
-                // Draw semi-transparent fill
-                ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
-                ctx.fillRect(pos.x - size/2, pos.y - size/2, size, size);
-                
-                // Draw border
-                ctx.strokeStyle = '#ff0000';
-                ctx.lineWidth = 5;
-                ctx.strokeRect(pos.x - size/2, pos.y - size/2, size, size);
-                
-                // Draw label with background
-                ctx.fillStyle = 'rgba(255, 0, 0, 0.9)';
-                const labelText = '🎯 GOAL';
-                const textWidth = ctx.measureText(labelText).width;
-                ctx.fillRect(pos.x - textWidth/2 - 5, pos.y - size/2 - 25, textWidth + 10, 20);
-                
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 16px Arial';
-                ctx.fillText(labelText, pos.x - textWidth/2, pos.y - size/2 - 10);
-                
-                // Draw target symbol
-                ctx.strokeStyle = '#ff0000';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 15, 0, 2 * Math.PI);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 8, 0, 2 * Math.PI);
-                ctx.stroke();
-            }
-
-            document.getElementById('analyzedImageContainer').style.display = 'block';
-            addLog('📊 Bounding boxes drawn with coordinates', 'success');
-            
-            // Add coordinate validation
-            if (analysis.rover_coordinates && analysis.goal_coordinates) {
-                const roverY = analysis.rover_coordinates.y;
-                const goalY = analysis.goal_coordinates.y;
-                
-                if (roverY < 50) {
-                    addLog('⚠️ Warning: Rover detected in upper half of image (unusual)', 'warning');
-                }
-                if (goalY > 70) {
-                    addLog('⚠️ Warning: Goal detected in lower half (should be above rover)', 'warning');
-                }
-            }
-        }
-
-        // Analyze image
-        async function analyzeImage() {
-            if (!uploadedImage) {
-                showStatus('Please upload an image first', 'error');
-                return;
-            }
-
-            const functionUrl = document.getElementById('function-url').value.trim();
-            const areaWidth = parseFloat(document.getElementById('areaWidth').value) || 1.5;
-            const areaHeight = parseFloat(document.getElementById('areaHeight').value) || 2.4;
-            const roverSpeed = parseFloat(document.getElementById('rover-speed').value) || 0.3;
-
-            const analyzeBtn = document.getElementById('analyze-image-btn');
-            analyzeBtn.textContent = '🔄 Analyzing...';
-            analyzeBtn.disabled = true;
-
-            addLog('🔍 Starting image analysis...', 'info');
-            addLog(`📏 Area: ${areaWidth}m × ${areaHeight}m`, 'info');
-            addLog(`🚗 Rover speed: ${roverSpeed} m/s`, 'info');
-            showStatus('Analyzing image...', 'info');
-
-            const analysisPrompt = `Analyze this robot navigation image in detail.
-
-AREA SPECIFICATIONS:
-- Size: ${areaWidth}m (width) × ${areaHeight}m (height)
-- Boundary: Black electrical tape marking the navigation area
-- Rover speed: ${roverSpeed} meters per second at 100% power
-
-DETECTION REQUIREMENTS:
-1. ROVER/ROBOT: Identify the small wheeled robot (usually at bottom of image)
-   - Provide approximate position as percentage from left and top
-   - Example: "30% from left, 90% from top"
-
-2. GOAL/TARGET: Identify the target object (green bottle, colored marker, etc.)
-   - Describe the object clearly
-   - Provide position as percentage coordinates
-
-3. OBSTACLES: Identify ALL objects that should be avoided
-   - List each obstacle separately with type and position
-   - Estimate size and distance from rover
-
-Return detailed analysis with specific measurements.`;
-
-            try {
-                const response = await fetch(functionUrl, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        "user_prompt": analysisPrompt,
-                        "image": uploadedImage,
-                        "analysis_only": true
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (data.status === 'success' && data.analysis) {
-                    analysisData = data.analysis;
-                    
-                    addLog('✅ Image Analysis Complete!', 'success');
-                    addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-                    
-                    // Rover detection
-                    if (analysisData.rover_found) {
-                        addLog(`🤖 ROVER DETECTED: ${analysisData.rover_position}`, 'success');
-                        if (analysisData.rover_description) {
-                            addLog(`   Description: ${analysisData.rover_description}`, 'info');
-                        }
-                    } else {
-                        addLog(`🤖 ROVER: ❌ NOT DETECTED`, 'error');
-                        addLog(`   ⚠️ Cannot navigate without rover position!`, 'error');
-                    }
-                    
-                    // Goal detection
-                    if (analysisData.goal_found) {
-                        addLog(`🎯 GOAL DETECTED: ${analysisData.goal_description || 'Target'}`, 'success');
-                        addLog(`   Position: ${analysisData.goal_position}`, 'success');
-                    } else {
-                        addLog(`🎯 GOAL: ❌ NOT DETECTED`, 'error');
-                        addLog(`   ⚠️ Cannot navigate without target!`, 'error');
-                    }
-                    
-                    // Obstacles
-                    if (analysisData.obstacles_detected && analysisData.obstacle_list) {
-                        addLog(`⚠️ OBSTACLES: ${analysisData.obstacle_count} detected`, 'warning');
-                        analysisData.obstacle_list.forEach((obs, i) => {
-                            addLog(`   ${i+1}. ${obs.type} - ${obs.position}`, 'warning');
-                            if (obs.size) addLog(`      Size: ${obs.size}`, 'info');
-                        });
-                    } else {
-                        addLog(`⚠️ OBSTACLES: None detected`, 'info');
-                    }
-                    
-                    // Boundary
-                    if (analysisData.boundary_detected) {
-                        addLog(`📏 BOUNDARY: ✅ ${analysisData.boundary_description}`, 'info');
-                    }
-                    
-                    addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-                    addLog(`📊 Assessment: ${analysisData.area_assessment}`, 'info');
-                    addLog(`💡 Strategy: ${analysisData.recommended_approach}`, 'info');
-                    addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-
-                    // Show detection list
-                    displayDetections(analysisData);
-
-                    // Draw bounding boxes using coordinates
-                    drawBoundingBoxes(analysisData);
-
-                    // Show manual correction option
-                    document.getElementById('manual-correction').style.display = 'block';
-                    if (analysisData.rover_coordinates) {
-                        document.getElementById('rover-x').value = Math.round(analysisData.rover_coordinates.x);
-                        document.getElementById('rover-y').value = Math.round(analysisData.rover_coordinates.y);
-                    }
-                    if (analysisData.goal_coordinates) {
-                        document.getElementById('goal-x').value = Math.round(analysisData.goal_coordinates.x);
-                        document.getElementById('goal-y').value = Math.round(analysisData.goal_coordinates.y);
-                    }
-
-                    // Check if navigation is feasible
-                    if (analysisData.navigation_feasible && analysisData.rover_found && analysisData.goal_found) {
-                        imageAnalyzed = true;
-                        document.getElementById('send-image-command').disabled = false;
-                        showStatus('✅ Analysis complete! Ready to navigate.', 'success');
-                    } else {
-                        imageAnalyzed = false;
-                        document.getElementById('send-image-command').disabled = true;
-                        
-                        let reason = [];
-                        if (!analysisData.rover_found) reason.push('Rover not detected');
-                        if (!analysisData.goal_found) reason.push('Goal not detected');
-                        if (!analysisData.navigation_feasible) reason.push('Path not feasible');
-                        
-                        showStatus(`⚠️ Cannot navigate: ${reason.join(', ')}`, 'error');
-                        addLog(`❌ Navigation blocked: ${reason.join(', ')}`, 'error');
-                    }
-                } else {
-                    addLog(`❌ Analysis failed: ${data.error || 'Unknown error'}`, 'error');
-                    if (data.json_error) {
-                        addLog(`   JSON Error: ${data.json_error}`, 'error');
-                    }
-                    if (data.ai_response) {
-                        addLog(`   AI Response preview: ${data.ai_response.substring(0, 200)}...`, 'warning');
-                    }
-                    showStatus('Analysis failed. Check log for details.', 'error');
-                }
-            } catch (error) {
-                addLog(`❌ Network Error: ${error.message}`, 'error');
-                showStatus(`Error: ${error.message}`, 'error');
-            } finally {
-                analyzeBtn.textContent = '🔍 Step 1: Analyze Image & Detect Objects';
-                analyzeBtn.disabled = false;
-            }
-        }
-
-        function displayDetections(analysis) {
-            const container = document.getElementById('detectionItems');
-            container.innerHTML = '';
-
-            // Rover
-            if (analysis.rover_found) {
-                const item = document.createElement('div');
-                item.className = 'detection-item';
-                item.innerHTML = `<strong>🤖 Rover:</strong> ${analysis.rover_position}`;
-                container.appendChild(item);
-            }
-
-            // Goal
-            if (analysis.goal_found) {
-                const item = document.createElement('div');
-                item.className = 'detection-item goal';
-                item.innerHTML = `<strong>🎯 Goal:</strong> ${analysis.goal_description} at ${analysis.goal_position}`;
-                container.appendChild(item);
-            }
-
-            // Obstacles
-            if (analysis.obstacle_list && analysis.obstacle_list.length > 0) {
-                analysis.obstacle_list.forEach(obs => {
-                    const item = document.createElement('div');
-                    item.className = 'detection-item obstacle';
-                    item.innerHTML = `<strong>⚠️ ${obs.type}:</strong> ${obs.position}`;
-                    container.appendChild(item);
-                });
-            }
-
-            document.getElementById('detectionList').style.display = 'block';
-        }
-
-        async function sendImageCommand() {
-            if (!imageAnalyzed) {
-                showStatus('Please analyze the image first', 'warning');
-                return;
-            }
-
-            const functionUrl = document.getElementById('function-url').value.trim();
-            const navInstructions = document.getElementById('nav-instructions').value.trim();
-            const areaWidth = parseFloat(document.getElementById('areaWidth').value) || 1.5;
-            const areaHeight = parseFloat(document.getElementById('areaHeight').value) || 2.4;
-            const roverSpeed = parseFloat(document.getElementById('rover-speed').value) || 0.3;
-
-            const sendButton = document.getElementById('send-image-command');
-            sendButton.textContent = '🔄 Planning Route...';
-            sendButton.disabled = true;
-
-            const navigationPrompt = `Generate precise navigation commands based on the analyzed image.
-
-CALIBRATED PARAMETERS:
-- Area: ${areaWidth}m × ${areaHeight}m
-- Rover speed: ${roverSpeed} m/s at 100% power
-- DISTANCE CALCULATION: duration (seconds) = distance (meters) / ${roverSpeed}
-
-DETECTED OBJECTS:
-${analysisData.rover_found ? `- Rover at: ${analysisData.rover_position}` : ''}
-${analysisData.goal_found ? `- Goal at: ${analysisData.goal_position} (${analysisData.goal_description})` : ''}
-${analysisData.obstacles_detected ? `- Obstacles: ${analysisData.obstacle_count} detected` : ''}
-
-TASK: ${navInstructions}
-
-CRITICAL: Use the rover speed (${roverSpeed} m/s) to calculate accurate durations.
-- To move 0.5m: ${(0.5 / roverSpeed).toFixed(2)} seconds
-- To move 1.0m: ${(1.0 / roverSpeed).toFixed(2)} seconds
-- To move 1.5m: ${(1.5 / roverSpeed).toFixed(2)} seconds
-
-Generate a sequence of 6-12 movement commands to navigate from rover to goal while avoiding obstacles.`;
-
-            addLog('🗺️ Generating navigation plan with calibrated speed...', 'info');
-
-            try {
-                const response = await fetch(functionUrl, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        "user_prompt": navigationPrompt,
-                        "image": uploadedImage
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (data.status === 'success' && data.generated_json) {
-                    addLog('✅ Navigation plan generated!', 'success');
-                    const plan = data.generated_json;
-                    
-                    if (plan.command === 'sequence' && plan.commands) {
-                        addLog(`📋 Sequence with ${plan.commands.length} movement steps:`, 'success');
-                        
-                        let totalDistance = 0;
-                        plan.commands.forEach((cmd, i) => {
-                            const movement = cmd.movement || `motor ${cmd.motor}`;
-                            const duration = cmd.duration;
-                            const distance = duration ? (duration * roverSpeed).toFixed(2) : 'N/A';
-                            
-                            if (duration) totalDistance += parseFloat(distance);
-                            
-                            addLog(`  Step ${i+1}: ${movement}${duration ? ` ${duration}s (≈${distance}m)` : ' (turn)'}`, 'info');
-                        });
-                        
-                        addLog(`📏 Total estimated distance: ${totalDistance.toFixed(2)}m`, 'info');
-                        addLog(`📡 IoT Status: ${data.iot_status}`, data.iot_status === 'sent' ? 'success' : 'warning');
-                        showStatus('🚀 Navigation sequence sent to rover!', 'success');
-                    } else {
-                        addLog(`⚠️ Unexpected command structure`, 'warning');
-                        showStatus('Command sent but format unexpected', 'warning');
-                    }
-                } else {
-                    addLog(`❌ Navigation failed: ${data.error || 'Unknown error'}`, 'error');
-                    showStatus(`Error: ${data.error || 'Navigation generation failed'}`, 'error');
-                }
-            } catch (error) {
-                addLog(`❌ Error: ${error.message}`, 'error');
-                showStatus(`Error: ${error.message}`, 'error');
-            } finally {
-                sendButton.textContent = '🗺️ Step 2: Generate & Execute Navigation Plan';
-                sendButton.disabled = false;
-            }
-        }
-
-        function addLog(message, type = 'info') {
-            const output = document.getElementById('response');
-            const timestamp = new Date().toLocaleTimeString();
-            const icons = { error: '❌', success: '✅', warning: '⚠️', info: '💬' };
-            const icon = icons[type] || '💬';
-            
-            output.textContent += `\n[${timestamp}] ${icon} ${message}`;
-            output.scrollTop = output.scrollHeight;
-        }
-
-        function showStatus(message, type) {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = `status ${type}`;
-            status.style.display = 'block';
-            setTimeout(() => status.style.display = 'none', 5000);
-        }
-
-        function setPrompt(text) {
-            document.getElementById('user-prompt').value = text;
-        }
-
-        function quickCommand(direction) {
-            const duration = parseFloat(document.getElementById('duration-input').value) || 2;
-            
-            const commands = {
-                'forward': `move forward for ${duration} seconds`,
-                'backward': `move backward for ${duration} seconds`, 
-                'left': 'turn left',
-                'right': 'turn right',
-                'stop': 'stop all motors'
-            };
-            
-            setPrompt(commands[direction]);
-            sendTextCommand();
-        }
-
-        async function sendTextCommand() {
-            if (commandInProgress) {
-                showStatus('Command in progress, please wait...', 'warning');
-                return;
-            }
-
-            let userPrompt = document.getElementById('user-prompt').value.trim();
-            const functionUrl = document.getElementById('function-url').value.trim();
-            
-            if (!userPrompt) {
-                showStatus('Please enter a command', 'error');
-                return;
-            }
-
-            commandInProgress = true;
-            const sendButton = document.getElementById('send-command');
-            sendButton.textContent = '🔄 Sending...';
-            sendButton.disabled = true;
-
-            addLog(`Command: "${userPrompt}"`, 'info');
-            showStatus('Sending command to rover...', 'info');
-
-            try {
-                const response = await fetch(functionUrl, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        "user_prompt": userPrompt
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    addLog(`✅ Command sent successfully!`, 'success');
-                    showStatus('Command sent to rover!', 'success');
-                } else {
-                    addLog(`❌ Error: ${data.error}`, 'error');
-                    showStatus(`Error: ${data.error}`, 'error');
-                }
-
-            } catch (error) {
-                addLog(`Error: ${error.message}`, 'error');
-                showStatus(`Error: ${error.message}`, 'error');
-            } finally {
-                commandInProgress = false;
-                sendButton.textContent = '🚀 Send Command';
-                sendButton.disabled = false;
-            }
-        }
-
-        function emergencyStop() {
-            setPrompt('stop all motors immediately');
-            sendTextCommand();
-        }
-
-        function clearLog() {
-            document.getElementById('response').textContent = '🚀 Rover Control System Ready\n\nLog cleared.';
-        }
-
-        function applyManualCorrection() {
-            if (!analysisData) {
-                showStatus('No analysis data to correct', 'error');
-                return;
-            }
-
-            // Get manual coordinates
-            const roverX = parseFloat(document.getElementById('rover-x').value);
-            const roverY = parseFloat(document.getElementById('rover-y').value);
-            const goalX = parseFloat(document.getElementById('goal-x').value);
-            const goalY = parseFloat(document.getElementById('goal-y').value);
-
-            // Validate
-            if (isNaN(roverX) || isNaN(roverY) || isNaN(goalX) || isNaN(goalY)) {
-                showStatus('Please enter all coordinates', 'error');
-                return;
-            }
-
-            // Update analysis data
-            analysisData.rover_coordinates = {x: roverX, y: roverY};
-            analysisData.goal_coordinates = {x: goalX, y: goalY};
-
-            // Redraw
-            drawBoundingBoxes(analysisData);
-
-            addLog('✏️ Manual corrections applied:', 'success');
-            addLog(`   Rover: (${roverX}%, ${roverY}%)`, 'info');
-            addLog(`   Goal: (${goalX}%, ${goalY}%)`, 'info');
-            showStatus('Coordinates updated! Check the image.', 'success');
-        }
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.altKey) {
-                switch(e.key.toLowerCase()) {
-                    case 'w': quickCommand('forward'); e.preventDefault(); break;
-                    case 's': quickCommand('backward'); e.preventDefault(); break;
-                    case 'a': quickCommand('left'); e.preventDefault(); break;
-                    case 'd': quickCommand('right'); e.preventDefault(); break;
-                    case ' ': quickCommand('stop'); e.preventDefault(); break;
-                }
-            }
-        });
-
-        // Initialize
-        addLog('System initialized - 4 control modes available', 'info');
-        addLog('⚠️ Remember to calibrate rover speed before using image navigation!', 'warning');
-    </script>
+      } else {
+        addLog(`❌ Planning failed: ${data.error || 'Unknown error'}`, 'error');
+        showStatus('Planning failed. Check log.', 'error');
+      }
+
+    } catch (err) {
+      addLog(`❌ Error: ${err.message}`, 'error');
+      showStatus(`Error: ${err.message}`, 'error');
+    } finally {
+      btn.textContent = '🗺️ Step 2: Generate & Execute Navigation Plan';
+      btn.disabled = false;
+    }
+  }
+
+  async function sendTextCommand() {
+    if (commandInProgress) return showStatus('Command in progress, wait...', 'warning');
+
+    const userPrompt = document.getElementById('user-prompt').value.trim();
+    const functionUrl = document.getElementById('function-url').value.trim();
+    if (!userPrompt) return showStatus('Enter a command', 'error');
+
+    commandInProgress = true;
+    const sendButton = document.getElementById('send-command');
+    sendButton.textContent = '🔄 Sending...';
+    sendButton.disabled = true;
+
+    addLog(`Command: "${userPrompt}"`, 'info');
+    showStatus('Sending command...', 'info');
+
+    try {
+      const response = await fetch(functionUrl, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ user_prompt: userPrompt })
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const data = await response.json();
+
+      if (data.status === 'success') {
+        addLog('✅ Command sent!', 'success');
+        showStatus('Command sent to rover!', 'success');
+      } else {
+        addLog(`❌ Error: ${data.error}`, 'error');
+        showStatus(`Error: ${data.error}`, 'error');
+      }
+    } catch (err) {
+      addLog(`❌ Error: ${err.message}`, 'error');
+      showStatus(`Error: ${err.message}`, 'error');
+    } finally {
+      commandInProgress = false;
+      sendButton.textContent = '🚀 Send Command';
+      sendButton.disabled = false;
+    }
+  }
+
+  function quickCommand(direction) {
+    const duration = parseFloat(document.getElementById('duration-input').value) || 2;
+    const commands = {
+      forward: `move forward for ${duration} seconds`,
+      backward: `move backward for ${duration} seconds`,
+      left: 'turn left',
+      right: 'turn right',
+      stop: 'stop all motors'
+    };
+    setPrompt(commands[direction]);
+    sendTextCommand();
+  }
+
+  function setPrompt(text){ document.getElementById('user-prompt').value = text; }
+
+  function emergencyStop(){ setPrompt('stop all motors immediately'); sendTextCommand(); }
+
+  function clearLog(){ document.getElementById('response').textContent = '🚀 Log cleared.'; }
+
+  function addLog(message, type='info') {
+    const output = document.getElementById('response');
+    const timestamp = new Date().toLocaleTimeString();
+    const icons = { error:'❌', success:'✅', warning:'⚠️', info:'💬' };
+    output.textContent += `\n[${timestamp}] ${icons[type]||'💬'} ${message}`;
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function showStatus(message, type) {
+    const status = document.getElementById('status');
+    status.textContent = message;
+    status.className = `status ${type}`;
+    status.style.display = 'block';
+    setTimeout(()=> status.style.display='none', 5000);
+  }
+</script>
 </body>
 </html>
