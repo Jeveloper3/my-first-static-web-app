@@ -508,6 +508,40 @@
                     🔍 Step 1: Analyze Image & Detect Objects
                 </button>
 
+                <div id="manual-correction" style="display: none; background: #2a2a2a; padding: 15px; border-radius: 8px; margin: 10px 0; border: 2px solid #ff9800;">
+                    <h4 style="margin-top: 0; color: #ff9800;">📝 Manual Coordinate Correction</h4>
+                    <p style="font-size: 12px; margin: 5px 0;">If bounding boxes are inaccurate, adjust coordinates manually:</p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;">
+                        <div>
+                            <label style="font-size: 12px;">🤖 Rover X%:</label>
+                            <input type="number" id="rover-x" min="0" max="100" step="1" style="width: 100%;">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px;">🤖 Rover Y%:</label>
+                            <input type="number" id="rover-y" min="0" max="100" step="1" style="width: 100%;">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px;">🎯 Goal X%:</label>
+                            <input type="number" id="goal-x" min="0" max="100" step="1" style="width: 100%;">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px;">🎯 Goal Y%:</label>
+                            <input type="number" id="goal-y" min="0" max="100" step="1" style="width: 100%;">
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-small" onclick="applyManualCorrection()" style="width: 100%;">
+                        ✅ Apply Corrections & Redraw
+                    </button>
+                    
+                    <p style="font-size: 11px; color: #888; margin: 10px 0 0 0;">
+                        💡 Tip: (0%, 0%) = top-left, (100%, 100%) = bottom-right<br>
+                        Rover should be in bottom portion (Y: 70-95%)<br>
+                        Goal should be above rover (Y: less than rover's Y)
+                    </p>
+                </div>
+
                 <button class="btn" id="send-image-command" onclick="sendImageCommand()" style="width: 100%;" disabled>
                     🗺️ Step 2: Generate & Execute Navigation Plan
                 </button>
@@ -753,32 +787,21 @@ Ready to send commands!
                 };
             }
 
-            // Draw rover
-            if (analysis.rover_found && analysis.rover_coordinates) {
-                const pos = percentToPixel(analysis.rover_coordinates);
-                const size = 40; // approximate box size
+            // Draw boundary FIRST (behind everything else)
+            if (analysis.boundary_detected && analysis.boundary_coordinates) {
+                const tl = percentToPixel(analysis.boundary_coordinates.top_left);
+                const br = percentToPixel(analysis.boundary_coordinates.bottom_right);
                 
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 4;
-                ctx.strokeRect(pos.x - size/2, pos.y - size/2, size, size);
+                ctx.strokeStyle = '#2196F3';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([15, 10]);
+                ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
+                ctx.setLineDash([]);
                 
-                ctx.fillStyle = '#00ff00';
-                ctx.font = 'bold 16px Arial';
-                ctx.fillText('🤖 ROVER', pos.x - 30, pos.y - size/2 - 5);
-            }
-
-            // Draw goal
-            if (analysis.goal_found && analysis.goal_coordinates) {
-                const pos = percentToPixel(analysis.goal_coordinates);
-                const size = 50;
-                
-                ctx.strokeStyle = '#ff0000';
-                ctx.lineWidth = 4;
-                ctx.strokeRect(pos.x - size/2, pos.y - size/2, size, size);
-                
-                ctx.fillStyle = '#ff0000';
-                ctx.font = 'bold 16px Arial';
-                ctx.fillText('🎯 GOAL', pos.x - 30, pos.y - size/2 - 5);
+                // Add label
+                ctx.fillStyle = '#2196F3';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('Navigation Boundary', tl.x + 10, tl.y + 20);
             }
 
             // Draw obstacles
@@ -786,33 +809,131 @@ Ready to send commands!
                 analysis.obstacle_list.forEach((obstacle, i) => {
                     if (obstacle.coordinates) {
                         const pos = percentToPixel(obstacle.coordinates);
-                        const size = 60;
                         
+                        // Estimate box size based on obstacle type
+                        let boxSize = 80; // default
+                        if (obstacle.estimated_size) {
+                            if (obstacle.estimated_size.includes('small')) boxSize = 60;
+                            if (obstacle.estimated_size.includes('medium')) boxSize = 90;
+                            if (obstacle.estimated_size.includes('large')) boxSize = 120;
+                        }
+                        
+                        // Draw semi-transparent fill
+                        ctx.fillStyle = 'rgba(255, 152, 0, 0.2)';
+                        ctx.fillRect(pos.x - boxSize/2, pos.y - boxSize/2, boxSize, boxSize);
+                        
+                        // Draw border
                         ctx.strokeStyle = '#ff9800';
-                        ctx.lineWidth = 3;
-                        ctx.strokeRect(pos.x - size/2, pos.y - size/2, size, size);
+                        ctx.lineWidth = 4;
+                        ctx.strokeRect(pos.x - boxSize/2, pos.y - boxSize/2, boxSize, boxSize);
                         
-                        ctx.fillStyle = '#ff9800';
+                        // Draw label with background
+                        ctx.fillStyle = 'rgba(255, 152, 0, 0.9)';
+                        const labelText = `⚠️ ${obstacle.type}`;
+                        const textWidth = ctx.measureText(labelText).width;
+                        ctx.fillRect(pos.x - textWidth/2 - 5, pos.y - boxSize/2 - 25, textWidth + 10, 20);
+                        
+                        ctx.fillStyle = '#000';
                         ctx.font = 'bold 14px Arial';
-                        ctx.fillText(`⚠️ ${obstacle.type}`, pos.x - 40, pos.y - size/2 - 5);
+                        ctx.fillText(labelText, pos.x - textWidth/2, pos.y - boxSize/2 - 10);
+                        
+                        // Draw crosshair at center
+                        ctx.strokeStyle = '#ff9800';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(pos.x - 10, pos.y);
+                        ctx.lineTo(pos.x + 10, pos.y);
+                        ctx.moveTo(pos.x, pos.y - 10);
+                        ctx.lineTo(pos.x, pos.y + 10);
+                        ctx.stroke();
                     }
                 });
             }
 
-            // Draw boundary if detected
-            if (analysis.boundary_detected && analysis.boundary_coordinates) {
-                const tl = percentToPixel(analysis.boundary_coordinates.top_left);
-                const br = percentToPixel(analysis.boundary_coordinates.bottom_right);
+            // Draw rover
+            if (analysis.rover_found && analysis.rover_coordinates) {
+                const pos = percentToPixel(analysis.rover_coordinates);
+                const size = 70; // rover box size
                 
-                ctx.strokeStyle = '#2196F3';
+                // Draw semi-transparent fill
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
+                ctx.fillRect(pos.x - size/2, pos.y - size/2, size, size);
+                
+                // Draw border
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 5;
+                ctx.strokeRect(pos.x - size/2, pos.y - size/2, size, size);
+                
+                // Draw label with background
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.9)';
+                const labelText = '🤖 ROVER START';
+                const textWidth = ctx.measureText(labelText).width;
+                ctx.fillRect(pos.x - textWidth/2 - 5, pos.y - size/2 - 25, textWidth + 10, 20);
+                
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(labelText, pos.x - textWidth/2, pos.y - size/2 - 10);
+                
+                // Draw direction arrow (pointing up)
+                ctx.fillStyle = '#00ff00';
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y - 15);
+                ctx.lineTo(pos.x - 8, pos.y + 5);
+                ctx.lineTo(pos.x + 8, pos.y + 5);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Draw goal
+            if (analysis.goal_found && analysis.goal_coordinates) {
+                const pos = percentToPixel(analysis.goal_coordinates);
+                const size = 70;
+                
+                // Draw semi-transparent fill
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+                ctx.fillRect(pos.x - size/2, pos.y - size/2, size, size);
+                
+                // Draw border
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 5;
+                ctx.strokeRect(pos.x - size/2, pos.y - size/2, size, size);
+                
+                // Draw label with background
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.9)';
+                const labelText = '🎯 GOAL';
+                const textWidth = ctx.measureText(labelText).width;
+                ctx.fillRect(pos.x - textWidth/2 - 5, pos.y - size/2 - 25, textWidth + 10, 20);
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(labelText, pos.x - textWidth/2, pos.y - size/2 - 10);
+                
+                // Draw target symbol
+                ctx.strokeStyle = '#ff0000';
                 ctx.lineWidth = 3;
-                ctx.setLineDash([10, 5]);
-                ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
-                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 15, 0, 2 * Math.PI);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 8, 0, 2 * Math.PI);
+                ctx.stroke();
             }
 
             document.getElementById('analyzedImageContainer').style.display = 'block';
-            addLog('📊 Bounding boxes drawn on image', 'success');
+            addLog('📊 Bounding boxes drawn with coordinates', 'success');
+            
+            // Add coordinate validation
+            if (analysis.rover_coordinates && analysis.goal_coordinates) {
+                const roverY = analysis.rover_coordinates.y;
+                const goalY = analysis.goal_coordinates.y;
+                
+                if (roverY < 50) {
+                    addLog('⚠️ Warning: Rover detected in upper half of image (unusual)', 'warning');
+                }
+                if (goalY > 70) {
+                    addLog('⚠️ Warning: Goal detected in lower half (should be above rover)', 'warning');
+                }
+            }
         }
 
         // Analyze image
@@ -923,6 +1044,17 @@ Return detailed analysis with specific measurements.`;
 
                     // Draw bounding boxes using coordinates
                     drawBoundingBoxes(analysisData);
+
+                    // Show manual correction option
+                    document.getElementById('manual-correction').style.display = 'block';
+                    if (analysisData.rover_coordinates) {
+                        document.getElementById('rover-x').value = Math.round(analysisData.rover_coordinates.x);
+                        document.getElementById('rover-y').value = Math.round(analysisData.rover_coordinates.y);
+                    }
+                    if (analysisData.goal_coordinates) {
+                        document.getElementById('goal-x').value = Math.round(analysisData.goal_coordinates.x);
+                        document.getElementById('goal-y').value = Math.round(analysisData.goal_coordinates.y);
+                    }
 
                     // Check if navigation is feasible
                     if (analysisData.navigation_feasible && analysisData.rover_found && analysisData.goal_found) {
@@ -1181,6 +1313,37 @@ Generate a sequence of 6-12 movement commands to navigate from rover to goal whi
 
         function clearLog() {
             document.getElementById('response').textContent = '🚀 Rover Control System Ready\n\nLog cleared.';
+        }
+
+        function applyManualCorrection() {
+            if (!analysisData) {
+                showStatus('No analysis data to correct', 'error');
+                return;
+            }
+
+            // Get manual coordinates
+            const roverX = parseFloat(document.getElementById('rover-x').value);
+            const roverY = parseFloat(document.getElementById('rover-y').value);
+            const goalX = parseFloat(document.getElementById('goal-x').value);
+            const goalY = parseFloat(document.getElementById('goal-y').value);
+
+            // Validate
+            if (isNaN(roverX) || isNaN(roverY) || isNaN(goalX) || isNaN(goalY)) {
+                showStatus('Please enter all coordinates', 'error');
+                return;
+            }
+
+            // Update analysis data
+            analysisData.rover_coordinates = {x: roverX, y: roverY};
+            analysisData.goal_coordinates = {x: goalX, y: goalY};
+
+            // Redraw
+            drawBoundingBoxes(analysisData);
+
+            addLog('✏️ Manual corrections applied:', 'success');
+            addLog(`   Rover: (${roverX}%, ${roverY}%)`, 'info');
+            addLog(`   Goal: (${goalX}%, ${goalY}%)`, 'info');
+            showStatus('Coordinates updated! Check the image.', 'success');
         }
 
         // Keyboard shortcuts
