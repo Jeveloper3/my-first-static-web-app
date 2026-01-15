@@ -1199,22 +1199,35 @@ Generate a sequence of 6-12 movement commands to navigate from rover to goal whi
                     const plan = data.generated_json;
                     
                     if (plan.command === 'sequence' && plan.commands) {
-                        addLog(`📋 Sequence with ${plan.commands.length} movement steps:`, 'success');
+                        // Count movement and pause commands
+                        const movementSteps = plan.commands.filter(cmd => cmd.command !== 'pause').length;
+                        const pauseSteps = plan.commands.filter(cmd => cmd.command === 'pause').length;
+                        
+                        addLog(`📋 Sequence with ${movementSteps} movements + ${pauseSteps} pauses (${plan.commands.length} total steps):`, 'success');
                         
                         let totalDistance = 0;
+                        let stepNum = 0;
+                        
                         plan.commands.forEach((cmd, i) => {
-                            const movement = cmd.movement || `motor ${cmd.motor}`;
-                            const duration = cmd.duration;
-                            const distance = duration ? (duration * roverSpeed).toFixed(2) : 'N/A';
-                            
-                            if (duration) totalDistance += parseFloat(distance);
-                            
-                            addLog(`  Step ${i+1}: ${movement}${duration ? ` ${duration}s (≈${distance}m)` : ' (turn)'}`, 'info');
+                            if (cmd.command === 'pause') {
+                                // Show pause steps
+                                addLog(`  ⏸️ Pause ${cmd.duration}s (stabilization)`, 'info');
+                            } else {
+                                stepNum++;
+                                const movement = cmd.movement || `motor ${cmd.motor}`;
+                                const duration = cmd.duration;
+                                const distance = duration ? (duration * roverSpeed).toFixed(2) : 'N/A';
+                                
+                                if (duration) totalDistance += parseFloat(distance);
+                                
+                                addLog(`  Step ${stepNum}: ${movement}${duration ? ` ${duration}s (≈${distance}m)` : ' (turn)'}`, 'info');
+                            }
                         });
                         
                         addLog(`📏 Total estimated distance: ${totalDistance.toFixed(2)}m`, 'info');
+                        addLog(`⏱️ Total time (with pauses): ${plan.commands.reduce((sum, cmd) => sum + (cmd.duration || 0), 0).toFixed(1)}s`, 'info');
                         addLog(`📡 IoT Status: ${data.iot_status}`, data.iot_status === 'sent' ? 'success' : 'warning');
-                        showStatus('🚀 Navigation sequence sent to rover!', 'success');
+                        showStatus('🚀 Navigation with stabilization pauses sent to rover!', 'success');
                     } else {
                         addLog(`⚠️ Unexpected command structure`, 'warning');
                         showStatus('Command sent but format unexpected', 'warning');
